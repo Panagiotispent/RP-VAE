@@ -4,11 +4,17 @@ import torch
 from torch.utils.data import DataLoader
 
 
-def get_data_loader(dataset, batch_size, cuda=False):
-    return DataLoader(
-        dataset, batch_size=batch_size, shuffle=False,
-        **({'num_workers': 1, 'pin_memory': True} if cuda else {})
-    )
+def get_data_loader(dataset, batch_size, train, cuda=False):
+    if train:
+        return DataLoader(
+            dataset, batch_size=batch_size, shuffle=True,
+            **({'num_workers': 1, 'pin_memory': True} if cuda else {})
+            )
+    else:
+        return DataLoader(
+         dataset, batch_size=batch_size, shuffle=False,
+         **({'num_workers': 1, 'pin_memory': True} if cuda else {})
+     )
 
 
 def save_checkpoint(model, model_dir, epoch):

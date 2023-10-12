@@ -40,7 +40,7 @@ def test_model(model, dataset, epochs=10,
     utils.load_checkpoint(model, checkpoint_dir)
     
 
-    data_loader = utils.get_data_loader(dataset, batch_size, cuda=cuda)
+    data_loader = utils.get_data_loader(dataset, batch_size,False, cuda=cuda)
     data_stream = tqdm(enumerate(data_loader, 1))
         
     model.seed = 0 # for the RP
@@ -99,7 +99,7 @@ def test_model(model, dataset, epochs=10,
     
     visual._vis().scatter(vis_x, opts={'textlabels' : y.cpu().numpy().tolist(), 'title': '2D distribution'},name= 'Test distribution', env=model.name)        
     images = model.sample(sample_size)
-    torchvision.utils.save_image(images, './samples/Test.png')
+    torchvision.utils.save_image(images, './samples/'+model.name+' Test.png')
     visual.visualize_images(
         images, name = 'generated samples',
         label=str(y[:8].numpy()),

@@ -7,7 +7,7 @@ import argparse
 import torch
 import torchvision
 import utils
-from model_RPVAE import VAE # model_VAE model_RPVAE model_RPVAE_L
+from model_VAE import VAE # model_FullCovVAE model_VAE model_RPVAE model_RPVAE_L
 from data import TRAIN_DATASETS, DATASET_CONFIGS
 from train import train_model
 from Test import test_model
@@ -15,15 +15,15 @@ from Test import test_model
 torch.autograd.set_detect_anomaly(True)
 
 parser = argparse.ArgumentParser('VAE PyTorch implementation')
-parser.add_argument('--dataset', default='mnist',
+parser.add_argument('--dataset', default='cifar10',
                     choices=list(TRAIN_DATASETS.keys()))
 
-parser.add_argument('--kernel-num', type=int, default=500)
-parser.add_argument('--z-size', type=int, default= 20 )
+parser.add_argument('--kernel-num', type=int, default=750)
+parser.add_argument('--z-size', type=int, default= 100 )
 
 parser.add_argument('--epochs', type=int, default=30)
 parser.add_argument('--batch-size', type=int, default=100)
-parser.add_argument('--sample-size', type=int, default=100)
+parser.add_argument('--sample-size', type=int, default=20)
 parser.add_argument('--lr', type=float, default=3e-05)
 parser.add_argument('--weight-decay', type=float, default=1e-06)
 
@@ -37,8 +37,8 @@ parser.add_argument('--no-gpus', action='store_false', dest='cuda')
 
 ## set default= True to train or test within spyder
 main_command = parser.add_mutually_exclusive_group(required=False)
-# main_command.add_argument('--test', action='store_false', dest='train',default=False)   
-main_command.add_argument('--train', action='store_true',default =True) # default = True
+main_command.add_argument('--test', action='store_false', dest='train',default=False)   
+# main_command.add_argument('--train', action='store_true',default =True) # default = True
 
 
 if __name__ == '__main__':
@@ -62,7 +62,7 @@ if __name__ == '__main__':
     #split data train/test 
     g_cpu = torch.Generator()
     g_cpu.manual_seed(0)
-    train_set, val_set = torch.utils.data.random_split(dataset, [50000, 10000],generator=g_cpu)
+    train_set, val_set = torch.utils.data.random_split(dataset, [40000, 10000],generator=g_cpu)
     
     
     # run a test or a training process.

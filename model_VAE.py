@@ -118,6 +118,9 @@ class VAE(nn.Module):
 
     def sample(self, size):
         z = self.get_z().cuda()if self._is_on_cuda() else self.get_z()
+        z = z[:size] # Required to be less than batch size
+        
+        # To sample from the latent space directly instead of ground truth
         # z = Variable(
         #     torch.randn(size, self.z_size).cuda() if self._is_on_cuda() else
         #     torch.randn(size, self.z_size)

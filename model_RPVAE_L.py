@@ -22,8 +22,7 @@ class VAE(nn.Module):
         self.z_size = z_size
         
         self.seed = 0
-        self.cov_space =  z_size//2
-        # self.RP_space = z_size
+        self.cov_space =  10
         
         
         # #for visualisation reasons
@@ -141,6 +140,7 @@ class VAE(nn.Module):
         return lower_tri_cov
     
     def RPproject(self,tri,lamda):
+        # Fixed sampling
         g = torch.Generator(device=tri.device)
 
         random_samples = torch.zeros([tri.shape[0],self.z_size, self.cov_space],device=tri.device) # tri.shape >> z_size 
@@ -149,6 +149,10 @@ class VAE(nn.Module):
             random_samples[i] = torch.randn(self.z_size, self.cov_space ,device=tri.device, generator = g) # .repeat(mean.shape[0], 1, 1) we need a fixed Projection matrix for each datum  so we can't use repeat
             
             (P[i],_) = torch.linalg.qr(random_samples[i])
+       
+        # Random sampling
+        # random_samples = torch.randn(self.z_size, self.cov_space ,device=tri.device).repeat(tri.shape[0], 1, 1)
+        # (P,_) = torch.linalg.qr(random_samples)
         
         sigma = torch.bmm(tri,tri.transpose(2,1)) 
         R = torch.bmm(P,sigma) # P @ tri [z,prj]
@@ -192,12 +196,14 @@ class VAE(nn.Module):
     @property
     def name(self):
         return (
-            'VAE'
+            'RPVAE_L'
+            '-{cov}'
             '-{kernel_num}k'
             '-{label}'
             '-{channel_num}x{image_size}x{image_size}'
         ).format(
             label=self.label,
+            cov = self.cov_space,
             kernel_num=self.kernel_num,
             image_size=self.image_size,
             channel_num=self.channel_num,
@@ -205,6 +211,9 @@ class VAE(nn.Module):
 
     def sample(self, size):
         z = self.get_z().cuda()if self._is_on_cuda() else self.get_z()
+        z = z[:size] # Required to be less than batch size
+        
+        # To sample from the latent space directly instead of ground truth
         # z = Variable(
         #     torch.randn(size, self.z_size).cuda() if self._is_on_cuda() else
         #     torch.randn(size, self.z_size)

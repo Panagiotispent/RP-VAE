@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Sep 29 15:00:33 2023
+Created on Wed Oct  4 10:26:12 2023
 
 @author: panay
 """
@@ -22,7 +22,6 @@ class VAE(nn.Module):
         self.z_size = z_size
         
         self.seed = 0
-        self.cov_space = 10
         
         
         # #for visualisation reasons
@@ -41,13 +40,13 @@ class VAE(nn.Module):
         self.feature_size = image_size // 8
         self.feature_volume = kernel_num * (self.feature_size ** 2)
         
-        self.corr_size = self.cov_space * (self.cov_space - 1) // 2
+        self.corr_size = self.z_size * (self.z_size - 1) // 2
         
         # q
         self.q_mean = self._linear(self.feature_volume, self.z_size, relu=False)
         
         # lower diagonal elements with 2 unconstrained layers one corr, one variance
-        self.q_logvar = self._linear(self.feature_volume, self.cov_space, relu=False)
+        self.q_logvar = self._linear(self.feature_volume, self.z_size, relu=False)
         self.q_logvar_corr = self._linear(self.feature_volume, (self.corr_size), relu=False)
        
         
@@ -70,9 +69,8 @@ class VAE(nn.Module):
         
         lower_tri_matrix = self.lower_tri_cov(var_ltr,logcorr) # logvar_ltr, corr
       
-        projected_ltr,projected_var = self.RPproject(lower_tri_matrix)
 
-        z = self.z_RP(mean,projected_ltr)
+        z = self.z_s(mean,lower_tri_matrix)
         
         # for visualising the same batch 
         self.z = z.detach()
@@ -86,7 +84,7 @@ class VAE(nn.Module):
         # reconstruct x from z
         x_reconstructed = self.decoder(z_projected)
 
-        return (mean, lower_tri_matrix, projected_var), x_reconstructed
+        return (mean, lower_tri_matrix, lower_tri_matrix), x_reconstructed
 
     # ==============
     # VAE components
@@ -100,29 +98,11 @@ class VAE(nn.Module):
         return self.q_mean(unrolled), self.q_logvar(unrolled),self.q_logvar_corr(unrolled)
     
     
-    # # # Unconstrained
-    # def lower_tri_cov(self,log_var,corr):
-        
-    #     # std = log_var.mul(0.5).exp_()
-    #     batch_size = log_var.shape[0]
-    #     dim = log_var.shape[-1]
-     
-    #     # build symmetric matrix with zeros on diagonal and correlations under 
-    #     rho_matrix = torch.zeros((batch_size, dim, dim), device=corr.device)
-    #     tril_indices = torch.tril_indices(row=dim, col=dim, offset=-1)
-    #     rho_matrix[:, tril_indices[0], tril_indices[1]] = corr 
-    #     lower_tri_cov = rho_matrix
-        
-    #     lower_tri_cov[:,range(dim), range(dim)] = log_var 
-       
-    #     return lower_tri_cov
-    
     #constrained 
     def lower_tri_cov(self, log_var,corr):
         std = torch.exp(0.5 * log_var)
         batch_size = std.shape[0]
         dim = std.shape[-1]
-        rho_dim = corr.shape[-1]
          
         # build symmetric matrix with sigma_x * sigma_x on the diagonal and sigma_x * sigma_y off-diagonal
         var_matrix = std.unsqueeze(-1).repeat(1, 1, dim)
@@ -140,31 +120,7 @@ class VAE(nn.Module):
         return lower_tri_cov
  
     
-    
-    def RPproject(self,tri):
-        # Fixed sampling
-        g = torch.Generator(device=tri.device)
-
-        random_samples = torch.zeros([tri.shape[0],self.z_size, self.cov_space],device=tri.device) # tri.shape >> z_size 
-        P = torch.zeros([tri.shape[0],self.z_size, self.cov_space],device=tri.device)
-        for i in range(tri.shape[0]):
-            random_samples[i] = torch.randn(self.z_size, self.cov_space ,device=tri.device, generator = g) # .repeat(mean.shape[0], 1, 1) we need a fixed Projection matrix for each datum  so we can't use repeat
-            
-            (P[i],_) = torch.linalg.qr(random_samples[i])
-       
-        # Random sampling
-        # random_samples = torch.randn(self.z_size, self.cov_space ,device=tri.device).repeat(tri.shape[0], 1, 1)
-        # (P,_) = torch.linalg.qr(random_samples)
-
-        sigma = torch.bmm(tri,tri.transpose(2,1)) 
-        R = torch.bmm(P,sigma) # P @ tri [z,prj]
-        RP_var = torch.bmm(R,P.transpose(2,1)) 
-        
-        RP_tri = torch.bmm(P,tri)
-        
-        return  RP_tri,RP_var
-    
-    def z_RP(self,mean,ltr):
+    def z_s(self,mean,ltr):
         z = mean + ltr @ torch.randn(ltr.shape[-1]).cuda() # mean [bs,z]
         return z
     
@@ -173,17 +129,17 @@ class VAE(nn.Module):
         return nn.BCELoss(size_average=False)(x_reconstructed, x) / x.size(0)
 
     # # Random Projection kl_divergence
-    def kl_divergence_loss(self, mean, tri,var): 
-        ''' THIS IS CURRENTLY THE LOWER TRI MATRIX AND THE PROJECTED VARIANCE STILL GET A FEW NAN IN THE LOGDET'''
+    def kl_divergence_loss(self, mean, tri,var = 0): 
+        
         l = 0
         mean = mean[:,:,None]
         
         lvar = torch.bmm(tri,tri.transpose(2,1)) # Sigma = Γ @ Γ.T
         # lvar = lvar + 1e-6
-        totrace = var + torch.bmm(mean, mean.transpose(2,1))
+        totrace = lvar + torch.bmm(mean, mean.transpose(2,1))
 
         l = 0.5 * (- torch.logdet(lvar) - mean.shape[-1]+ totrace.diagonal(offset=0, dim1=-1, dim2=-2).sum(-1))
-       
+
         return torch.mean(l) 
     
     # =====
@@ -193,14 +149,12 @@ class VAE(nn.Module):
     @property
     def name(self):
         return (
-            'RPVAE'
-            '-{cov}'
+            'Full VAE'
             '-{kernel_num}k'
             '-{label}'
             '-{channel_num}x{image_size}x{image_size}'
         ).format(
             label=self.label,
-            cov = self.cov_space,
             kernel_num=self.kernel_num,
             image_size=self.image_size,
             channel_num=self.channel_num,

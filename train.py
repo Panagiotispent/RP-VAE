@@ -44,7 +44,7 @@ def train_model(model, dataset, epochs=10,
         epoch_start = 1
 
     for epoch in range(epoch_start, epochs+1):
-        data_loader = utils.get_data_loader(dataset, batch_size, cuda=cuda)
+        data_loader = utils.get_data_loader(dataset, batch_size,False, cuda=cuda)
         data_stream = tqdm(enumerate(data_loader, 1))
         
         model.seed = 0 # for the RP
