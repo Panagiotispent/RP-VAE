@@ -7,15 +7,6 @@ import torchvision
 import vis_utils
 import torch
 avg_meter = vis_utils.AverageMeter()
-# lnplt = vis_utils.VisdomLinePlotter()
-
-#for visualisation of higher latent space to 2D purposes only 
-
-from sklearn.decomposition import PCA
-pca = PCA(n_components=2)
-
-
-
 
 # using this because I got multiple versions of openmp on my program 
 import os

@@ -9,12 +9,6 @@ import torch
 avg_meter = vis_utils.AverageMeter()
 # lnplt = vis_utils.VisdomLinePlotter()
 
-#for visualisation of higher latent space to 2D purposes only 
-
-from sklearn.decomposition import PCA
-pca = PCA(n_components=2)
-
-
 # using this because I got multiple versions of openmp on my program 
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
@@ -70,10 +64,7 @@ def train_model(model, dataset, epochs=10,
 
     for epoch in range(epoch_start, epochs+1):
         data_stream = tqdm(enumerate(data_loader, 1))
-        
-        model.seed = 0 # for the RP
-        
-       
+
         for batch_index, (x, y) in data_stream:
             # where are we?
             iteration = (epoch-1)*(len(dataset)//batch_size) + batch_index
@@ -100,9 +91,7 @@ def train_model(model, dataset, epochs=10,
             # backprop gradients from the loss
             total_loss.backward()
             optimizer.step()
-            
-            model.seed += 1 # fix the projection matrices
-            
+
             # update progress
             data_stream.set_description((
                 'epoch: {epoch} | '
