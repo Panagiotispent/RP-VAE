@@ -139,15 +139,7 @@ def train_model(model, dataset, epochs=10,
                 #     iteration, env=model.name)
                                                                
             if iteration % image_log_interval == 0:
-                to_vis = model.get_z().cpu().numpy()
-                #used to train pca to the same dim reduction distribution
-                # input(to_vis.shape)
-                g_cpu = torch.Generator()
-                g_cpu.manual_seed(0)
-                fixed_pca = torch.randn(to_vis.shape,generator=g_cpu)
-                vis_x = pca.fit(fixed_pca).transform(to_vis.tolist())
-                
-                visual._vis().scatter(vis_x, opts={'textlabels' : y.cpu().numpy().tolist(), 'title': 'Epoch: ' + str(epoch) },name= str(epoch))        
+                      
                 images = model.sample(sample_size)
                 torchvision.utils.save_image(images, './samples/img'+str(epoch)+'.png')
                 visual.visualize_images(

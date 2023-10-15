@@ -110,16 +110,7 @@ def test_model(model, dataset, epochs=10,
         #     losses, names, 'loss', iteration= batch_index,
         #     env=model.name)
                                                            
-    # using the last batch to know the expected output   
-    to_vis = model.get_z().cpu().numpy()
-    #used to train pca to the same dim reduction distribution
-    # input(to_vis.shape)
-    g_cpu = torch.Generator()
-    g_cpu.manual_seed(0)
-    fixed_pca = torch.randn(to_vis.shape,generator=g_cpu)
-    vis_x = pca.fit(fixed_pca).transform(to_vis.tolist())
-    
-    visual._vis().scatter(vis_x, opts={'textlabels' : y.cpu().numpy().tolist(), 'title': '2D distribution'},name= 'Test distribution', env=model.name)        
+   
     images = model.sample(sample_size)
     torchvision.utils.save_image(images, './samples/'+model.name+' Test.png')
     visual.visualize_images(
