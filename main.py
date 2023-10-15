@@ -7,7 +7,7 @@ import argparse
 import torch
 import torchvision
 import utils
-from model_RPVAE import VAE # model_FullCovVAE model_VAE model_RPVAE model_RPVAE_L
+from model_RP import VAE # model_Full model_D model_RP model_RP_D
 from data import TRAIN_DATASETS, DATASET_CONFIGS
 from train import train_model
 from Test import test_model
@@ -37,8 +37,8 @@ parser.add_argument('--no-gpus', action='store_false', dest='cuda')
 
 ## set default= True to train or test within spyder
 main_command = parser.add_mutually_exclusive_group(required=False)
-main_command.add_argument('--test', action='store_false', dest='train',default=False)   
-# main_command.add_argument('--train', action='store_true',default =True) # default = True
+# main_command.add_argument('--test', action='store_false', dest='train',default=False)   
+main_command.add_argument('--train', action='store_true',default =True) # default = True
 
 
 if __name__ == '__main__':

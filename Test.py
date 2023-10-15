@@ -42,16 +42,38 @@ def test_model(model, dataset, epochs=10,
 
     data_loader = utils.get_data_loader(dataset, batch_size,False, cuda=cuda)
     data_stream = tqdm(enumerate(data_loader, 1))
+    
+    #Generate projection matrices / Reproducibility 
+    if ('RP' in model.name) or ('RP_D' in model.name):
+        # Fixed sampling
+        g = torch.Generator()
         
-    model.seed = 0 # for the RP
-        
+        random_samples = torch.zeros([len(data_loader.dataset),model.z_size, model.cov_space]) # tri.shape >> z_size 
+        P = torch.zeros([len(data_loader.dataset),model.z_size, model.cov_space])
+        for i in range(len(data_loader.dataset)):
+            g.manual_seed(i)
+            random_samples[i] = torch.randn(model.z_size, model.cov_space, generator=g) # .repeat(mean.shape[0], 1, 1) we need a fixed Projection matrix for each datum  so we can't use repeat
+            
+            (P[i],_) = torch.linalg.qr(random_samples[i])
+            
+        # # Random sampling
+        # random_samples = torch.randn(model.z_size, model.cov_space).repeat(len(data_loader.dataset), 1, 1)
+        # (P,_) = torch.linalg.qr(random_samples)
+        # input(P.shape)
+       
     for batch_index, (x, y) in data_stream:
 
         # prepare data on gpu if needed
         x = Variable(x).cuda() if cuda else Variable(x)
         
+        #For the projection matrix
+        batch_iter = batch_index * batch_size
         
-        (mean, ltr, var), x_reconstructed = model(x)
+        if ('RP' in model.name) or ('RP_D' in model.name):
+            (mean, ltr, var), x_reconstructed = model(x,P[(batch_iter-batch_size):batch_iter])
+        else:
+            (mean, ltr, var), x_reconstructed = model(x)
+        
         reconstruction_loss = model.reconstruction_loss(x_reconstructed, x)
         kl_divergence_loss = model.kl_divergence_loss(mean, ltr,var)
  
