@@ -22,7 +22,7 @@ class VAE(nn.Module):
         self.z_size = z_size
         
         self.seed = 0
-        self.cov_space =  10
+        self.cov_space =  z_size//5
         
         
         # #for visualisation reasons
@@ -197,12 +197,14 @@ class VAE(nn.Module):
     def name(self):
         return (
             'RPVAE_L'
+            '-{z}'
             '-{cov}'
             '-{kernel_num}k'
             '-{label}'
             '-{channel_num}x{image_size}x{image_size}'
         ).format(
             label=self.label,
+            z = self.z_size,
             cov = self.cov_space,
             kernel_num=self.kernel_num,
             image_size=self.image_size,

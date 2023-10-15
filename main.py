@@ -7,7 +7,7 @@ import argparse
 import torch
 import torchvision
 import utils
-from model_VAE import VAE # model_FullCovVAE model_VAE model_RPVAE model_RPVAE_L
+from model_RPVAE import VAE # model_FullCovVAE model_VAE model_RPVAE model_RPVAE_L
 from data import TRAIN_DATASETS, DATASET_CONFIGS
 from train import train_model
 from Test import test_model
@@ -19,7 +19,7 @@ parser.add_argument('--dataset', default='cifar10',
                     choices=list(TRAIN_DATASETS.keys()))
 
 parser.add_argument('--kernel-num', type=int, default=750)
-parser.add_argument('--z-size', type=int, default= 100 )
+parser.add_argument('--z-size', type=int, default= 20 )
 
 parser.add_argument('--epochs', type=int, default=30)
 parser.add_argument('--batch-size', type=int, default=100)
@@ -63,6 +63,7 @@ if __name__ == '__main__':
     g_cpu = torch.Generator()
     g_cpu.manual_seed(0)
     train_set, val_set = torch.utils.data.random_split(dataset, [40000, 10000],generator=g_cpu)
+    
     
     
     # run a test or a training process.

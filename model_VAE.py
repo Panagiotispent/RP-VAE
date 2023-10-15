@@ -106,11 +106,13 @@ class VAE(nn.Module):
     def name(self):
         return (
             'VAE'
+            '-{cov}'
             '-{kernel_num}k'
             '-{label}'
             '-{channel_num}x{image_size}x{image_size}'
         ).format(
             label=self.label,
+            cov = self.z_size,
             kernel_num=self.kernel_num,
             image_size=self.image_size,
             channel_num=self.channel_num,

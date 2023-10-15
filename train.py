@@ -31,6 +31,9 @@ def train_model(model, dataset, epochs=10,
     
     lnplt = vis_utils.VisdomLinePlotter(env_name=model.name) # cause we want the name variable
     
+    #load trained model
+    # utils.load_checkpoint(model, checkpoint_dir)
+    
     # prepare optimizer and model
     model.train()
     optimizer = optim.Adam(
