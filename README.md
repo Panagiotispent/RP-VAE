@@ -15,5 +15,6 @@ Instructions:
 
 3. Run main.py
 
-This generates graphs for training loss metrics, and image samples of the last iteration that can be found in the localhost.
+Running main.py generates graphs for training loss metrics, and image samples of the last iteration that can be found in the localhost.
+
 The image samples are also saved in the samples folder.
