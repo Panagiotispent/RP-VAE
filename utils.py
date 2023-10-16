@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 def get_data_loader(dataset, batch_size, train, cuda=False):
     if train:
         return DataLoader(
-            dataset, batch_size=batch_size, shuffle=True,
+            dataset, batch_size=batch_size, shuffle=False,
             **({'num_workers': 1, 'pin_memory': True} if cuda else {})
             )
     else:

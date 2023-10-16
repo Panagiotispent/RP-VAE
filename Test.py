@@ -34,23 +34,21 @@ def test_model(model, dataset, epochs=10,
     data_loader = utils.get_data_loader(dataset, batch_size,False, cuda=cuda)
     data_stream = tqdm(enumerate(data_loader, 1))
     
-    #Generate projection matrices / Reproducibility 
+    # # # #Generate projection matrices / Reproducibility 
     if ('RP' in model.name) or ('RP_D' in model.name):
-        # Fixed sampling
-        g = torch.Generator()
+    #     # Fixed sampling
+    #     g = torch.Generator()
         
-        random_samples = torch.zeros([len(data_loader.dataset),model.z_size, model.cov_space]) # tri.shape >> z_size 
-        P = torch.zeros([len(data_loader.dataset),model.z_size, model.cov_space])
-        for i in range(len(data_loader.dataset)):
-            g.manual_seed(i)
-            random_samples[i] = torch.randn(model.z_size, model.cov_space, generator=g) # .repeat(mean.shape[0], 1, 1) we need a fixed Projection matrix for each datum  so we can't use repeat
-            
-            (P[i],_) = torch.linalg.qr(random_samples[i])
+    #     random_samples = torch.zeros([len(data_loader.dataset),model.z_size, model.cov_space]) # tri.shape >> z_size 
+    #     P = torch.zeros([len(data_loader.dataset),model.z_size, model.cov_space])
+    #     for i in range(len(data_loader.dataset)):
+    #         g.manual_seed(i)
+    #         random_samples[i] = torch.randn(model.z_size, model.cov_space, generator=g) 
+    #         (P[i],_) = torch.linalg.qr(random_samples[i])
             
         # # Random sampling
-        # random_samples = torch.randn(model.z_size, model.cov_space).repeat(len(data_loader.dataset), 1, 1)
-        # (P,_) = torch.linalg.qr(random_samples)
-        # input(P.shape)
+        random_samples = torch.randn(model.z_size, model.cov_space).repeat(len(data_loader.dataset), 1, 1)
+        (P,_) = torch.linalg.qr(random_samples)
        
     for batch_index, (x, y) in data_stream:
 
@@ -109,3 +107,8 @@ def test_model(model, dataset, epochs=10,
         label=str(y[:8].numpy()),
         env=model.name
     )# label name's the first 8 samples
+    
+    
+    return total_loss.detach()
+    
+    

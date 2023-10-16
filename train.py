@@ -25,9 +25,7 @@ def train_model(model, dataset, epochs=10,
     
     lnplt = vis_utils.VisdomLinePlotter(env_name=model.name) # cause we want the name variable
     
-    #load trained model
-    # utils.load_checkpoint(model, checkpoint_dir)
-    
+
     # prepare optimizer and model
     model.train()
     optimizer = optim.Adam(
@@ -52,16 +50,9 @@ def train_model(model, dataset, epochs=10,
         P = torch.zeros([len(data_loader.dataset),model.z_size, model.cov_space])
         for i in range(len(data_loader.dataset)):
             g.manual_seed(i)
-            random_samples[i] = torch.randn(model.z_size, model.cov_space, generator=g) # .repeat(mean.shape[0], 1, 1) we need a fixed Projection matrix for each datum  so we can't use repeat
-            
+            random_samples[i] = torch.randn(model.z_size, model.cov_space, generator=g) # 
             (P[i],_) = torch.linalg.qr(random_samples[i])
             
-        # # Random sampling
-        # random_samples = torch.randn(model.z_size, model.cov_space).repeat(len(data_loader.dataset), 1, 1)
-        # (P,_) = torch.linalg.qr(random_samples)
-        # input(P.shape)
-        
-
     for epoch in range(epoch_start, epochs+1):
         data_stream = tqdm(enumerate(data_loader, 1))
 

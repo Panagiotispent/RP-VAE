@@ -21,8 +21,7 @@ class VAE(nn.Module):
         self.kernel_num = kernel_num
         self.z_size = z_size
         
-        self.seed = 0
-        self.cov_space =  z_size//5
+        self.cov_space =  z_size//10
         
         
         # #for visualisation reasons

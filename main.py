@@ -7,7 +7,8 @@ import argparse
 import torch
 import torchvision
 import utils
-from model_RP import VAE # model_Full model_D model_RP model_RP_D
+import numpy as np
+from model_RP_D import VAE # model_Full model_D model_RP model_RP_D
 from data import TRAIN_DATASETS, DATASET_CONFIGS
 from train import train_model
 from Test import test_model
@@ -15,11 +16,11 @@ from Test import test_model
 torch.autograd.set_detect_anomaly(True)
 
 parser = argparse.ArgumentParser('VAE PyTorch implementation')
-parser.add_argument('--dataset', default='cifar10',
+parser.add_argument('--dataset', default='mnist',
                     choices=list(TRAIN_DATASETS.keys()))
 
-parser.add_argument('--kernel-num', type=int, default=750)
-parser.add_argument('--z-size', type=int, default= 20 )
+parser.add_argument('--kernel-num', type=int, default=500)
+parser.add_argument('--z-size', type=int, default= 10 )
 
 parser.add_argument('--epochs', type=int, default=30)
 parser.add_argument('--batch-size', type=int, default=100)
@@ -60,9 +61,10 @@ if __name__ == '__main__':
         vae.cuda()
     print(args.train)
     #split data train/test 
+    #Reproducibility 
     g_cpu = torch.Generator()
     g_cpu.manual_seed(0)
-    train_set, val_set = torch.utils.data.random_split(dataset, [40000, 10000],generator=g_cpu)
+    train_set, val_set = torch.utils.data.random_split(dataset, [50000, 10000],generator=g_cpu)
     
     
     
@@ -82,18 +84,25 @@ if __name__ == '__main__':
             cuda=cuda,
         )
     else:
-        test_model(
-            vae, dataset=val_set,
-            epochs=args.epochs,
-            batch_size=args.batch_size,
-            sample_size=args.sample_size,
-            lr=args.lr,
-            weight_decay=args.weight_decay,
-            checkpoint_dir=args.checkpoint_dir,
-            loss_log_interval=args.loss_log_interval,
-            image_log_interval=args.image_log_interval,
-            resume=args.resume,
-            cuda=cuda,
-        )
+        #Monte Carlo runs
+        loss_lst = []
+        for i in range(10):
+            loss = test_model(
+                vae, dataset=val_set,
+                epochs=args.epochs,
+                batch_size=args.batch_size,
+                sample_size=args.sample_size,
+                lr=args.lr,
+                weight_decay=args.weight_decay,
+                checkpoint_dir=args.checkpoint_dir,
+                loss_log_interval=args.loss_log_interval,
+                image_log_interval=args.image_log_interval,
+                resume=args.resume,
+                cuda=cuda,
+            )
+            
+            loss_lst.append(loss)
+        mean = np.mean(loss_lst)
+        sd = np.std(loss_lst)    
         images = vae.sample(args.sample_size)
-        torchvision.utils.save_image(images, args.sample_dir+'/test.png')
+        torchvision.utils.save_image(images, args.sample_dir+'/'+vae.name+'test.png')
