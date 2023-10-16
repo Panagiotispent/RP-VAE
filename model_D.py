@@ -20,8 +20,6 @@ class VAE(nn.Module):
         self.channel_num = channel_num
         self.kernel_num = kernel_num
         self.z_size = z_size
-        
-        self.seed = 0
 
         # #for visualisation reasons
         self.z = torch.zeros(10,self.z_size)

@@ -23,11 +23,8 @@ class VAE(nn.Module):
         
         self.cov_space =  z_size//10
         
-        
         # #for visualisation reasons
         self.z = torch.zeros(10,self.z_size)
-
-
 
         # encoder
         self.encoder = nn.Sequential(
