@@ -36,8 +36,8 @@ parser.add_argument('--sample-dir', type=str, default='./samples')
 parser.add_argument('--no-gpus', action='store_false', dest='cuda')
 
 
-## set default= True to train or test within spyder
-main_command = parser.add_mutually_exclusive_group(required=True)
+## Commented code to work within spyder
+main_command = parser.add_mutually_exclusive_group(required=True) # False
 main_command.add_argument('--test', action='store_false', dest='train')#,default=False)   
 main_command.add_argument('--train', action='store_true',default =True)
 
