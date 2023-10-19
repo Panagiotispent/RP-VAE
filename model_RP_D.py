@@ -89,12 +89,30 @@ class VAE(nn.Module):
     # VAE components
     # ==============
     
-    # # Using a two linear layers to generate 1.the diagonal and 2.correlation of the data for the lower_tri_matrix  
-    # # '''https://github.com/boschresearch/unscented-autoencoder/blob/main/models/dist_utils.py'''
+    
     def q_full_cov(self, encoded):
         unrolled = encoded.view(-1, self.feature_volume)
         return self.q_mean(unrolled), self.q_logvar(unrolled),self.q_logvar_corr(unrolled),self.lamda(unrolled)
     
+    # # Unconstrained
+    def lower_tri_cov_un(self,log_var,corr):
+        
+        # std = log_var.mul(0.5).exp_()
+        batch_size = log_var.shape[0]
+        dim = log_var.shape[-1]
+     
+        # build symmetric matrix with zeros on diagonal and correlations under 
+        rho_matrix = torch.zeros((batch_size, dim, dim), device=corr.device)
+        tril_indices = torch.tril_indices(row=dim, col=dim, offset=-1)
+        rho_matrix[:, tril_indices[0], tril_indices[1]] = corr 
+        # input(rho_matrix[0])
+        lower_tri_cov = rho_matrix
+        
+        lower_tri_cov[:,range(dim), range(dim)] = log_var 
+       
+        return lower_tri_cov
+    
+    # # '''https://github.com/boschresearch/unscented-autoencoder/blob/main/models/dist_utils.py'''
     # Constrained 
     def lower_tri_cov(self, log_var,corr):
         std = torch.exp(0.5 * log_var)
@@ -141,8 +159,7 @@ class VAE(nn.Module):
     def kl_divergence_loss(self, mean, tri,var): 
         ''' THIS IS CURRENTLY THE LOWER TRI MATRIX AND THE PROJECTED VARIANCE STILL GET A FEW NAN IN THE LOGDET'''
         l = 0
-        lvar = torch.bmm(tri,tri.transpose(2,1)) # Sigma = Γ @ Γ.T
-        # lvar = lvar + 1e-6
+        lvar = torch.bmm(tri,tri.transpose(2,1))
 
         mean = mean[:,:,None]
 

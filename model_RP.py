@@ -23,7 +23,7 @@ class VAE(nn.Module):
         
         self.cov_space = z_size//10
         
-        # #for visualisation reasons
+        # #for visualisation
         self.z = torch.zeros(10,self.z_size)
 
 
@@ -63,9 +63,9 @@ class VAE(nn.Module):
         # encode x
         encoded = self.encoder(x)
 
-        mean, var_ltr, logcorr = self.q_full_cov(encoded) # mean, logvar_ltr,corr = self.q(encoded)
+        mean, var_ltr, logcorr = self.q_full_cov(encoded)
         
-        lower_tri_matrix = self.lower_tri_cov(var_ltr,logcorr) # logvar_ltr, corr
+        lower_tri_matrix = self.lower_tri_cov(var_ltr,logcorr)
       
         projected_ltr,projected_var = self.RPproject(lower_tri_matrix,Pr)
 
@@ -90,12 +90,33 @@ class VAE(nn.Module):
     # ==============
 
    
-    # # Using a two linear layers to generate 1.the diagonal and 2.correlation of the data for the lower_tri_matrix  
-    # # '''https://github.com/boschresearch/unscented-autoencoder/blob/main/models/dist_utils.py'''
+    
     def q_full_cov(self, encoded):
         unrolled = encoded.view(-1, self.feature_volume)
         return self.q_mean(unrolled), self.q_logvar(unrolled),self.q_logvar_corr(unrolled)
     
+    
+    # # Unconstrained
+    def lower_tri_cov_un(self,log_var,corr):
+        
+        # std = log_var.mul(0.5).exp_()
+        batch_size = log_var.shape[0]
+        dim = log_var.shape[-1]
+     
+        # build symmetric matrix with zeros on diagonal and correlations under 
+        rho_matrix = torch.zeros((batch_size, dim, dim), device=corr.device)
+        tril_indices = torch.tril_indices(row=dim, col=dim, offset=-1)
+        rho_matrix[:, tril_indices[0], tril_indices[1]] = corr 
+        # input(rho_matrix[0])
+        lower_tri_cov = rho_matrix
+        
+        lower_tri_cov[:,range(dim), range(dim)] = log_var 
+       
+        return lower_tri_cov
+
+    
+    
+    # # '''https://github.com/boschresearch/unscented-autoencoder/blob/main/models/dist_utils.py'''
     # Constrained 
     def lower_tri_cov(self, log_var,corr):
         std = torch.exp(0.5 * log_var)
@@ -121,7 +142,7 @@ class VAE(nn.Module):
     def RPproject(self,tri,P):
         P = P.to(tri.device)
         sigma = torch.bmm(tri,tri.transpose(2,1)) 
-        R = torch.bmm(P,sigma) # P @ tri [z,prj]
+        R = torch.bmm(P,sigma)
         RP_var = torch.bmm(R,P.transpose(2,1)) 
         
         RP_tri = torch.bmm(P,tri)
@@ -142,8 +163,7 @@ class VAE(nn.Module):
         l = 0
         mean = mean[:,:,None]
         
-        lvar = torch.bmm(tri,tri.transpose(2,1)) # Sigma = Γ @ Γ.T
-        # lvar = lvar + 1e-6
+        lvar = torch.bmm(tri,tri.transpose(2,1))
         totrace = var + torch.bmm(mean, mean.transpose(2,1))
 
         l = 0.5 * (- torch.logdet(lvar) - mean.shape[-1]+ totrace.diagonal(offset=0, dim1=-1, dim2=-2).sum(-1))

@@ -38,7 +38,7 @@ def train_model(model, dataset, epochs=10,
     else:
         epoch_start = 1
         
-    data_loader = utils.get_data_loader(dataset, batch_size,False, cuda=cuda)
+    data_loader = utils.get_data_loader(dataset, batch_size,False, cuda=cuda) # data NOT shuffled 
 
     
     #Generate projection matrices
@@ -67,8 +67,6 @@ def train_model(model, dataset, epochs=10,
             optimizer.zero_grad()
             #For the projection matrix
             batch_iter = batch_index * batch_size
-            # input(batch_iter)
-            # input(P[(batch_iter-batch_size):batch_iter].shape)
             
             if ('RP' in model.name) or ('RP_D' in model.name):
                 (mean, ltr, var), x_reconstructed = model(x,P[(batch_iter-batch_size):batch_iter])

@@ -34,9 +34,9 @@ def test_model(model, dataset, epochs=10,
     data_loader = utils.get_data_loader(dataset, batch_size,False, cuda=cuda)
     data_stream = tqdm(enumerate(data_loader, 1))
     
-    # # # #Generate projection matrices / Reproducibility 
+    # # # #Generate projection matrices 
     if ('RP' in model.name) or ('RP_D' in model.name):
-    #     # Fixed sampling
+    #     # Fixed sampling / Reproducibility 
     #     g = torch.Generator()
         
     #     random_samples = torch.zeros([len(data_loader.dataset),model.z_size, model.cov_space]) # tri.shape >> z_size 

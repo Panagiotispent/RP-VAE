@@ -61,11 +61,10 @@ class VAE(nn.Module):
         # encode x
         encoded = self.encoder(x)
 
-        mean, var_ltr, logcorr = self.q_full_cov(encoded) # mean, logvar_ltr,corr = self.q(encoded)
+        mean, var_ltr, logcorr = self.q_full_cov(encoded) 
         
-        lower_tri_matrix = self.lower_tri_cov(var_ltr,logcorr) # logvar_ltr, corr
+        lower_tri_matrix = self.lower_tri_cov(var_ltr,logcorr)
       
-
         z = self.z_s(mean,lower_tri_matrix)
         
         # for visualising the same batch 
@@ -87,14 +86,13 @@ class VAE(nn.Module):
     # ==============
 
    
-    # # Using a two linear layers to generate 1.the diagonal and 2.correlation of the data for the lower_tri_matrix  
-    # # '''https://github.com/boschresearch/unscented-autoencoder/blob/main/models/dist_utils.py'''
+
     def q_full_cov(self, encoded):
         unrolled = encoded.view(-1, self.feature_volume)
         return self.q_mean(unrolled), self.q_logvar(unrolled),self.q_logvar_corr(unrolled)
-    
-    
-    #constrained 
+      
+    # # '''https://github.com/boschresearch/unscented-autoencoder/blob/main/models/dist_utils.py'''    
+    # Constrained 
     def lower_tri_cov(self, log_var,corr):
         std = torch.exp(0.5 * log_var)
         batch_size = std.shape[0]
@@ -130,8 +128,8 @@ class VAE(nn.Module):
         l = 0
         mean = mean[:,:,None]
         
-        lvar = torch.bmm(tri,tri.transpose(2,1)) # Sigma = Γ @ Γ.T
-        # lvar = lvar + 1e-6
+        lvar = torch.bmm(tri,tri.transpose(2,1))
+
         totrace = lvar + torch.bmm(mean, mean.transpose(2,1))
 
         l = 0.5 * (- torch.logdet(lvar) - mean.shape[-1]+ totrace.diagonal(offset=0, dim1=-1, dim2=-2).sum(-1))

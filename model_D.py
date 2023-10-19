@@ -61,7 +61,6 @@ class VAE(nn.Module):
         
         # for visualising the same batch 
         self.z = z.detach()
-        # print(self.z)
         
         z_projected = self.project(z).view(
             -1, self.kernel_num,

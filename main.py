@@ -8,7 +8,7 @@ import torch
 import torchvision
 import utils
 import numpy as np
-from model_RP_D import VAE # model_Full model_D model_RP model_RP_D
+from model_Full import VAE # model_Full model_D model_RP model_RP_D
 from data import TRAIN_DATASETS, DATASET_CONFIGS
 from train import train_model
 from Test import test_model
@@ -16,10 +16,10 @@ from Test import test_model
 torch.autograd.set_detect_anomaly(True)
 
 parser = argparse.ArgumentParser('VAE PyTorch implementation')
-parser.add_argument('--dataset', default='mnist',
+parser.add_argument('--dataset', default='cifar10',
                     choices=list(TRAIN_DATASETS.keys()))
 
-parser.add_argument('--kernel-num', type=int, default=500)
+parser.add_argument('--kernel-num', type=int, default=750)
 parser.add_argument('--z-size', type=int, default= 10 )
 
 parser.add_argument('--epochs', type=int, default=30)
@@ -37,9 +37,9 @@ parser.add_argument('--no-gpus', action='store_false', dest='cuda')
 
 
 ## set default= True to train or test within spyder
-main_command = parser.add_mutually_exclusive_group(required=False)
-# main_command.add_argument('--test', action='store_false', dest='train',default=False)   
-main_command.add_argument('--train', action='store_true',default =True) # default = True
+main_command = parser.add_mutually_exclusive_group(required=True)
+main_command.add_argument('--test', action='store_false', dest='train')#,default=False)   
+main_command.add_argument('--train', action='store_true',default =True)
 
 
 if __name__ == '__main__':
@@ -59,12 +59,12 @@ if __name__ == '__main__':
     # move the model parameters to the gpu if needed.
     if cuda:
         vae.cuda()
-    print(args.train)
+    print('Train: ', args.train)
     #split data train/test 
     #Reproducibility 
     g_cpu = torch.Generator()
     g_cpu.manual_seed(0)
-    train_set, val_set = torch.utils.data.random_split(dataset, [50000, 10000],generator=g_cpu)
+    train_set, val_set = torch.utils.data.random_split(dataset, [40000, 10000],generator=g_cpu)
     
     
     
