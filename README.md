@@ -1,8 +1,9 @@
 # RP-VAE
 
 Random Projection integrated with minor changes to the vanilla vae code: https://github.com/kuc2477/pytorch-vae.
-The code for constraining the covariance matrices can be found in: https://github.com/boschresearch/unscented-autoencoder
 This code uses the vanilla VAE code as base so the same requirements and execution procedure hold for this code.
+
+The code for constraining the covariance matrices can be found in: https://github.com/boschresearch/unscented-autoencoder
 
 Instead of a single model.py file, the user can import a different parameterisation using the provided model_*.py file within main.py. (Model names are the same as those denoted in the paper)
 
@@ -11,11 +12,11 @@ Instructions:
 2. Through main.py
   - Import the desired parameterisation model
     -- Each model requires manual change of the n parameter through its own .py file
-  - Decide on the hyperparameters of the model, and number of Monte Carlo runs
+  - Decide on the hyperparameters of the model and number of Monte Carlo runs
   - Train or test
 
 3. Run main.py
 
-Running main.py generates graphs for training loss metrics, and image samples of the last iteration that can be found in the localhost.
+Running main.py generates graphs for training loss metrics and image samples of the last iteration that can be found in the localhost.
 
 The image samples are also saved in the samples folder.
