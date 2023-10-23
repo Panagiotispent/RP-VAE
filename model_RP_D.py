@@ -1,15 +1,7 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Sep 29 15:04:43 2023
 
-@author: panay
-"""
 import torch
-from torch.autograd import Variable
 from torch import nn
-import torch.distributions as dist
-import torch.nn.functional as F
-import time
 
 class VAE(nn.Module):
     def __init__(self, label, image_size, channel_num, kernel_num, z_size):
@@ -157,8 +149,7 @@ class VAE(nn.Module):
     
     # # Random Projection kl_divergence
     def kl_divergence_loss(self, mean, tri,var): 
-        ''' THIS IS CURRENTLY THE LOWER TRI MATRIX AND THE PROJECTED VARIANCE STILL GET A FEW NAN IN THE LOGDET'''
-        l = 0
+
         lvar = torch.bmm(tri,tri.transpose(2,1))
 
         mean = mean[:,:,None]

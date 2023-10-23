@@ -1,4 +1,4 @@
-from torch import optim
+
 from torch.autograd import Variable
 from tqdm import tqdm
 import utils

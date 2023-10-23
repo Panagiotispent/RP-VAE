@@ -6,9 +6,8 @@
 import argparse
 import torch
 import torchvision
-import utils
 import numpy as np
-from model_Full import VAE # model_Full model_D model_RP model_RP_D
+from model_RP_D import VAE # model_Full model_D model_RP model_RP_D
 from data import TRAIN_DATASETS, DATASET_CONFIGS
 from train import train_model
 from Test import test_model
@@ -20,7 +19,7 @@ parser.add_argument('--dataset', default='cifar10',
                     choices=list(TRAIN_DATASETS.keys()))
 
 parser.add_argument('--kernel-num', type=int, default=750)
-parser.add_argument('--z-size', type=int, default= 10 )
+parser.add_argument('--z-size', type=int, default= 100 )
 
 parser.add_argument('--epochs', type=int, default=30)
 parser.add_argument('--batch-size', type=int, default=100)
@@ -36,8 +35,8 @@ parser.add_argument('--sample-dir', type=str, default='./samples')
 parser.add_argument('--no-gpus', action='store_false', dest='cuda')
 
 
-## Commented code to work within spyder
-main_command = parser.add_mutually_exclusive_group(required=True) # False
+## set default= True to train or test within spyder
+main_command = parser.add_mutually_exclusive_group(required=True)
 main_command.add_argument('--test', action='store_false', dest='train')#,default=False)   
 main_command.add_argument('--train', action='store_true',default =True)
 

@@ -1,15 +1,8 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Wed Oct  4 10:26:12 2023
 
-@author: panay
-"""
 import torch
-from torch.autograd import Variable
 from torch import nn
-import torch.distributions as dist
-import torch.nn.functional as F
-import time
+
 
 class VAE(nn.Module):
     def __init__(self, label, image_size, channel_num, kernel_num, z_size):
