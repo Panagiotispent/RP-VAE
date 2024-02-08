@@ -7,7 +7,7 @@ import torchvision
 # import vis_utils
 import torch
 import timeit
-
+import time # for .backwards as it cannot be called in multiple successions 
 # avg_meter = vis_utils.AverageMeter()
 # lnplt = vis_utils.VisdomLinePlotter()
 
@@ -116,9 +116,18 @@ def train_model(model, dataset, epochs=10,
             
  
             total_loss = reconstruction_loss.cpu() + kl_divergence_loss.cpu()
+            
             # backprop gradients from the loss
+            if epoch == 1 and batch_index == 1:
+                print('backward pass')
+                tic = time.perf_counter()
+            
             total_loss.backward()
             optimizer.step()
+            
+            if epoch == 1 and batch_index == 1:
+                toc = time.perf_counter()
+                print(f"{toc - tic} seconds")
 
             # update progress
             data_stream.set_description((
