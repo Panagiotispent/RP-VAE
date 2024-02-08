@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import torch
+import timeit
 from torch import nn
 
 class VAE(nn.Module):
-    def __init__(self, label, image_size, channel_num, kernel_num, z_size):
+    def __init__(self, label, image_size, channel_num, kernel_num, z_size,n_size):
         # configurations
         super().__init__()
         self.label = label
@@ -13,7 +14,7 @@ class VAE(nn.Module):
         self.kernel_num = kernel_num
         self.z_size = z_size
         
-        self.cov_space = z_size//10
+        self.cov_space = n_size
         
         # #for visualisation
         self.z = torch.zeros(10,self.z_size)
@@ -76,6 +77,46 @@ class VAE(nn.Module):
         x_reconstructed = self.decoder(z_projected)
 
         return (mean, lower_tri_matrix, projected_var), x_reconstructed
+    
+    
+    def time_forward(self,x,Pr):
+        # encode x
+        encoded = self.encoder(x)
+        print('encoder()')
+        print(min(timeit.repeat(lambda: self.encoder(x),globals=globals(),number= 100,repeat=10)))
+        
+        mean, var_ltr, logcorr = self.q_full_cov(encoded)
+        print('q_full_cov()')
+        print(min(timeit.repeat(lambda: self.q_full_cov(encoded),globals=globals(),number= 100,repeat=10)))        
+        
+        lower_tri_matrix = self.lower_tri_cov(var_ltr,logcorr)
+        print('lower_tri_cov()')
+        print(min(timeit.repeat(lambda: self.lower_tri_cov(var_ltr,logcorr),globals=globals(),number= 100,repeat=10)))  
+      
+        projected_ltr,projected_var = self.RPproject(lower_tri_matrix,Pr)
+        print('RPproject()')
+        print(min(timeit.repeat(lambda: self.RPproject(lower_tri_matrix,Pr),globals=globals(),number= 100,repeat=10)))  
+
+        z = self.z_RP(mean,projected_ltr)
+        print('z_RP()')
+        print(min(timeit.repeat(lambda: self.z_RP(mean,projected_ltr),globals=globals(),number= 100,repeat=10)))  
+        
+        # for visualising the same batch 
+        self.z = z.detach()
+        
+        z_projected = self.project(z).view(
+            -1, self.kernel_num,
+            self.feature_size,
+            self.feature_size,
+        )
+        print('project(z).view()')
+        print(min(timeit.repeat(lambda:  self.project(z).view(-1, self.kernel_num,self.feature_size, self.feature_size,),globals=globals(),number= 100,repeat=10)))  
+
+        # reconstruct x from z
+        x_reconstructed = self.decoder(z_projected)
+        print('decoder()')
+        print(min(timeit.repeat(lambda: self.decoder(z_projected),globals=globals(),number= 100,repeat=10)))  
+    
 
     # ==============
     # VAE components

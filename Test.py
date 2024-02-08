@@ -2,11 +2,11 @@
 from torch.autograd import Variable
 from tqdm import tqdm
 import utils
-import visual
+# import visual
 import torchvision
-import vis_utils
+# import vis_utils
 import torch
-avg_meter = vis_utils.AverageMeter()
+# avg_meter = vis_utils.AverageMeter()
 
 # using this because I got multiple versions of openmp on my program 
 import os
@@ -23,7 +23,7 @@ def test_model(model, dataset, epochs=10,
                 resume=False,
                 cuda=False):
     
-    lnplt = vis_utils.VisdomLinePlotter(env_name=model.name) # cause we want the name variable
+    # lnplt = vis_utils.VisdomLinePlotter(env_name=model.name) # cause we want the name variable
     
     model.eval()
     
@@ -34,21 +34,28 @@ def test_model(model, dataset, epochs=10,
     data_loader = utils.get_data_loader(dataset, batch_size,False, cuda=cuda)
     data_stream = tqdm(enumerate(data_loader, 1))
     
-    # # # #Generate projection matrices 
-    if ('RP' in model.name) or ('RP_D' in model.name):
-    #     # Fixed sampling / Reproducibility 
-    #     g = torch.Generator()
+    #Generate projection matrices
+    if ('RP_B' in model.name):
+        # Fixed sampling
+        g = torch.Generator()
+        max_pos = (model.z_size - model.cov_space)
         
-    #     random_samples = torch.zeros([len(data_loader.dataset),model.z_size, model.cov_space]) # tri.shape >> z_size 
-    #     P = torch.zeros([len(data_loader.dataset),model.z_size, model.cov_space])
-    #     for i in range(len(data_loader.dataset)):
-    #         g.manual_seed(i)
-    #         random_samples[i] = torch.randn(model.z_size, model.cov_space, generator=g) 
-    #         (P[i],_) = torch.linalg.qr(random_samples[i])
-            
-        # # Random sampling
-        random_samples = torch.randn(model.z_size, model.cov_space).repeat(len(data_loader.dataset), 1, 1)
-        (P,_) = torch.linalg.qr(random_samples)
+        P = torch.zeros([len(data_loader.dataset),1])
+        #Fixed block position 
+        for i in range(len(data_loader.dataset)):
+            g.manual_seed(i)
+            P[i] = torch.randint(0, max_pos,(1,))#,generator = g) 
+
+    elif ('RP' in model.name) or ('RP_D' in model.name):
+        # Fixed sampling
+        g = torch.Generator()
+        
+        random_samples = torch.zeros([len(data_loader.dataset),model.z_size, model.cov_space]) # tri.shape >> z_size 
+        P = torch.zeros([len(data_loader.dataset),model.z_size, model.cov_space])
+        for i in range(len(data_loader.dataset)):
+            g.manual_seed(i)
+            random_samples[i] = torch.randn(model.z_size, model.cov_space, generator=g) # 
+            (P[i],_) = torch.linalg.qr(random_samples[i])
        
     for batch_index, (x, y) in data_stream:
 
@@ -102,11 +109,11 @@ def test_model(model, dataset, epochs=10,
    
     images = model.sample(sample_size)
     torchvision.utils.save_image(images, './samples/'+model.name+' Test.png')
-    visual.visualize_images(
-        images, name = 'generated samples',
-        label=str(y[:8].numpy()),
-        env=model.name
-    )# label name's the first 8 samples
+    # visual.visualize_images(
+    #     images, name = 'generated samples',
+    #     label=str(y[:8].numpy()),
+    #     env=model.name
+    # )# label name's the first 8 samples
     
     
     return total_loss.detach()

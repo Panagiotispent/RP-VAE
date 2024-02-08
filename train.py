@@ -2,11 +2,13 @@ from torch import optim
 from torch.autograd import Variable
 from tqdm import tqdm
 import utils
-import visual
+# import visual
 import torchvision
-import vis_utils
+# import vis_utils
 import torch
-avg_meter = vis_utils.AverageMeter()
+import timeit
+
+# avg_meter = vis_utils.AverageMeter()
 # lnplt = vis_utils.VisdomLinePlotter()
 
 # using this because I got multiple versions of openmp on my program 
@@ -23,9 +25,9 @@ def train_model(model, dataset, epochs=10,
                 resume=False,
                 cuda=False):
     
-    lnplt = vis_utils.VisdomLinePlotter(env_name=model.name) # cause we want the name variable
+    # lnplt = vis_utils.VisdomLinePlotter(env_name=model.name) # cause we want the name variable
     
-
+    
     # prepare optimizer and model
     model.train()
     optimizer = optim.Adam(
@@ -40,9 +42,19 @@ def train_model(model, dataset, epochs=10,
         
     data_loader = utils.get_data_loader(dataset, batch_size,False, cuda=cuda) # data NOT shuffled 
 
+    #  #Generate projection matrices
+    if ('RP_B' in model.name):
+        # Fixed sampling
+        g = torch.Generator()
+        max_pos = (model.z_size - model.cov_space)
+        
+        P = torch.zeros([len(data_loader.dataset),1])
+        #Fixed block position 
+        for i in range(len(data_loader.dataset)):
+            g.manual_seed(i)
+            P[i] = torch.randint(0, max_pos,(1,),generator = g) 
     
-    #Generate projection matrices
-    if ('RP' in model.name) or ('RP_D' in model.name):
+    elif ('RP' in model.name) or ('RP_D' in model.name):
         # Fixed sampling
         g = torch.Generator()
         
@@ -52,11 +64,14 @@ def train_model(model, dataset, epochs=10,
             g.manual_seed(i)
             random_samples[i] = torch.randn(model.z_size, model.cov_space, generator=g) # 
             (P[i],_) = torch.linalg.qr(random_samples[i])
-            
+        
+        
     for epoch in range(epoch_start, epochs+1):
+        
         data_stream = tqdm(enumerate(data_loader, 1))
 
         for batch_index, (x, y) in data_stream:
+
             # where are we?
             iteration = (epoch-1)*(len(dataset)//batch_size) + batch_index
 
@@ -70,11 +85,35 @@ def train_model(model, dataset, epochs=10,
             
             if ('RP' in model.name) or ('RP_D' in model.name):
                 (mean, ltr, var), x_reconstructed = model(x,P[(batch_iter-batch_size):batch_iter])
+                
+                if epoch == 1 and batch_index == 1:
+                    print('first batch time')
+                    print(min(timeit.repeat(lambda: model(x,P[(batch_iter-batch_size):batch_iter]),globals=globals(),number= 100,repeat=10)))
+                    
+                    print('Each operation time:')
+                    model.time_forward(x,P[(batch_iter-batch_size):batch_iter])
+                
             else:
                 (mean, ltr, var), x_reconstructed = model(x)
+                
+                if epoch == 1 and batch_index == 1:
+                    print('first batch time')
+                    print(min(timeit.repeat(lambda: model(x),globals=globals(),number= 100,repeat=10)))
+                    
+                    print('Each operation time:')
+                    model.time_forward(x)
+                
+                
             
             reconstruction_loss = model.reconstruction_loss(x_reconstructed, x)
             kl_divergence_loss = model.kl_divergence_loss(mean,ltr, var)
+            
+            if epoch == 1 and batch_index == 1:
+                print('recon_loss')
+                print(min(timeit.repeat(lambda: model.reconstruction_loss(x_reconstructed, x),globals=globals(),number= 100,repeat=10)))
+                print('kl_div')
+                print(min(timeit.repeat(lambda: model.kl_divergence_loss(mean,ltr, var),globals=globals(),number= 100,repeat=10)))
+            
  
             total_loss = reconstruction_loss.cpu() + kl_divergence_loss.cpu()
             # backprop gradients from the loss
@@ -101,30 +140,32 @@ def train_model(model, dataset, epochs=10,
                 kl_divergence_loss=kl_divergence_loss.data.item(),
             ))
 
-            if iteration % loss_log_interval == 0:
-                losses = [
-                    reconstruction_loss.data.item(),
-                    kl_divergence_loss.data.item(),
-                    total_loss.data.item(),
-                ]
-                names = ['reconstruction', 'kl divergence', 'total']
-                lnplt.plot(names[0], 'train', 'reconstruction_loss', epoch, losses[0])
-                lnplt.plot(names[1], 'train', 'kl_divergence_loss', epoch, losses[1])
-                lnplt.plot(names[2], 'train', 'total_loss', epoch, losses[2])
+            # if iteration % loss_log_interval == 0:
+            #     losses = [
+            #         reconstruction_loss.data.item(),
+            #         kl_divergence_loss.data.item(),
+            #         total_loss.data.item(),
+            #     ]
+            #     names = ['reconstruction', 'kl divergence', 'total']
+            #     # lnplt.plot(names[0], 'train', 'reconstruction_loss', epoch, losses[0])
+            #     # lnplt.plot(names[1], 'train', 'kl_divergence_loss', epoch, losses[1])
+            #     # lnplt.plot(names[2], 'train', 'total_loss', epoch, losses[2])
                 
-                # visual.visualize_scalars(
-                #     losses, names, 'loss',
-                #     iteration, env=model.name)
+            #     # visual.visualize_scalars(
+            #     #     losses, names, 'loss',
+            #     #     iteration, env=model.name)
                                                                
-            if iteration % image_log_interval == 0:
+            # if iteration % image_log_interval == 0:
                       
-                images = model.sample(sample_size)
-                torchvision.utils.save_image(images, './samples/img'+str(epoch)+'.png')
-                visual.visualize_images(
-                    images, name = 'generated samples',
-                    label=str(y[:8].numpy()),
-                    env=model.name
-                )# label name's the first 8 samples
+            #     images = model.sample(sample_size)
+            #     torchvision.utils.save_image(images, './samples/img'+str(epoch)+'.png')
+            #     visual.visualize_images(
+            #         images, name = 'generated samples',
+            #         label=str(y[:8].numpy()),
+            #         env=model.name
+            #     )# label name's the first 8 samples
+                
+                
 
         # notify that we've reached to a new checkpoint.
         print()

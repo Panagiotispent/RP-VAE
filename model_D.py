@@ -3,9 +3,10 @@
 import torch
 from torch.autograd import Variable
 from torch import nn
+import timeit
 
 class VAE(nn.Module):
-    def __init__(self, label, image_size, channel_num, kernel_num, z_size):
+    def __init__(self, label, image_size, channel_num, kernel_num, z_size,n_size = 0):
         # configurations
         super().__init__()
         self.label = label
@@ -65,6 +66,38 @@ class VAE(nn.Module):
         x_reconstructed = self.decoder(z_projected)
 
         return (mean, logvar, None), x_reconstructed
+    
+    
+    def time_forward(self,x,Pr):
+        # encode x
+        encoded = self.encoder(x)
+        print('encoder()')
+        print(min(timeit.repeat(lambda: self.encoder(x),globals=globals(),number= 100,repeat=10)))
+        
+        # sample latent code z from q given x.
+        mean, logvar = self.q(encoded)
+        print('q()')
+        print(min(timeit.repeat(lambda: self.q(encoded),globals=globals(),number= 100,repeat=10)))
+ 
+        z = self.z_s(mean, logvar)
+        print('z_s()')
+        print(min(timeit.repeat(lambda: self.z_s(mean, logvar),globals=globals(),number= 100,repeat=10)))
+        
+        # for visualising the same batch 
+        self.z = z.detach()
+        
+        z_projected = self.project(z).view(
+            -1, self.kernel_num,
+            self.feature_size,
+            self.feature_size,
+        )
+        print('project(z).view()')
+        print(min(timeit.repeat(lambda:  self.project(z).view(-1, self.kernel_num,self.feature_size, self.feature_size,),globals=globals(),number= 100,repeat=10)))  
+
+        # reconstruct x from z
+        x_reconstructed = self.decoder(z_projected)
+        print('decoder()')
+        print(min(timeit.repeat(lambda: self.decoder(z_projected),globals=globals(),number= 100,repeat=10)))  
 
     # ==============
     # VAE components
