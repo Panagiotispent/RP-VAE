@@ -13,25 +13,41 @@ Execute main.py
 args: 
 
 --dataset, default='Flowers102'
+
 --model, default='model_D' # model_Full model_D model_RP
+
 --kernel-num, default=500)
+
 --z-size, default= 10
+
 --n-size, default= 10
+
 --epochs, default=30
+
 --batch-size, default=100
+
 --sample-size, default=20
+
 --lr, default=3e-05
+
 --weight-decay, default=1e-06
+
 --loss-log-interval, default=100
+
 --image-log-interval, default=500
+
 --resume,default = False
+
 --checkpoint-dir, default='./checkpoints'
+
 --sample-dir,default='./samples'
+
 --no-gpus, dest='cuda'
 
 Mutually_exclusive:
 
---test,default=False)  
+--test,default=False
+
 --train,default =True
 
 Running main.py outputs runtimes and loss metrics, and generates graphs for image samples.
