@@ -40,7 +40,7 @@ def train_model(model, dataset, epochs=10,
     else:
         epoch_start = 1
         
-    data_loader = utils.get_data_loader(dataset, batch_size,False, cuda=cuda) # data NOT shuffled 
+    data_loader = utils.get_data_loader(dataset, batch_size,True, cuda=cuda) # data NOT shuffled
 
     #  #Generate projection matrices
     if ('RP_B' in model.name):
@@ -68,8 +68,11 @@ def train_model(model, dataset, epochs=10,
         
     for epoch in range(epoch_start, epochs+1):
         
-        data_stream = tqdm(enumerate(data_loader, 1))
-
+        data_stream = tqdm(enumerate(data_loader, 1),disable=False)
+        
+        if epoch == (epochs+1):
+            data_stream = tqdm(enumerate(data_loader, 1),disable=False)
+            
         for batch_index, (x, y) in data_stream:
 
             # where are we?
@@ -85,23 +88,25 @@ def train_model(model, dataset, epochs=10,
             
             if ('RP' in model.name) or ('RP_D' in model.name):
                 (mean, ltr, var), x_reconstructed = model(x,P[(batch_iter-batch_size):batch_iter])
-                
+            
                 if epoch == 1 and batch_index == 1:
-                    print('first batch time')
-                    print(min(timeit.repeat(lambda: model(x,P[(batch_iter-batch_size):batch_iter]),globals=globals(),number= 100,repeat=10)))
-                    
-                    print('Each operation time:')
-                    model.time_forward(x,P[(batch_iter-batch_size):batch_iter])
+                    with torch.no_grad():
+                        print('first batch time')
+                        print(min(timeit.repeat(lambda: model(x,P[(batch_iter-batch_size):batch_iter]),globals=globals(),number= 100,repeat=10)))
+                        
+                        print('Each operation time:')
+                        model.time_forward(x,P[(batch_iter-batch_size):batch_iter])
                 
             else:
                 (mean, ltr, var), x_reconstructed = model(x)
                 
                 if epoch == 1 and batch_index == 1:
-                    print('first batch time')
-                    print(min(timeit.repeat(lambda: model(x),globals=globals(),number= 100,repeat=10)))
-                    
-                    print('Each operation time:')
-                    model.time_forward(x)
+                    with torch.no_grad():
+                        print('first batch time')
+                        print(min(timeit.repeat(lambda: model(x),globals=globals(),number= 100,repeat=10)))
+                        
+                        print('Each operation time:')
+                        model.time_forward(x)
                 
                 
             
@@ -109,11 +114,12 @@ def train_model(model, dataset, epochs=10,
             kl_divergence_loss = model.kl_divergence_loss(mean,ltr, var)
             
             if epoch == 1 and batch_index == 1:
-                print('recon_loss')
-                print(min(timeit.repeat(lambda: model.reconstruction_loss(x_reconstructed, x),globals=globals(),number= 100,repeat=10)))
-                print('kl_div')
-                print(min(timeit.repeat(lambda: model.kl_divergence_loss(mean,ltr, var),globals=globals(),number= 100,repeat=10)))
-            
+                with torch.no_grad():
+                    print('recon_loss')
+                    print(min(timeit.repeat(lambda: model.reconstruction_loss(x_reconstructed, x),globals=globals(),number= 100,repeat=10)))
+                    print('kl_div')
+                    print(min(timeit.repeat(lambda: model.kl_divergence_loss(mean,ltr, var),globals=globals(),number= 100,repeat=10)))
+                
  
             total_loss = reconstruction_loss.cpu() + kl_divergence_loss.cpu()
             
@@ -124,7 +130,6 @@ def train_model(model, dataset, epochs=10,
             
             total_loss.backward()
             optimizer.step()
-            
             if epoch == 1 and batch_index == 1:
                 toc = time.perf_counter()
                 print(f"{toc - tic} seconds")

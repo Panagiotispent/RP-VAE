@@ -75,7 +75,7 @@ class VAE(nn.Module):
         return (mean, lower_tri_matrix, lower_tri_matrix), x_reconstructed
     
     
-    def time_forward(self,x,Pr):
+    def time_forward(self,x):
         # encode x
         encoded = self.encoder(x)
         print('encoder()')
@@ -120,9 +120,9 @@ class VAE(nn.Module):
         return self.q_mean(unrolled), self.q_logvar(unrolled),self.q_logvar_corr(unrolled)
       
     # # '''https://github.com/boschresearch/unscented-autoencoder/blob/main/models/dist_utils.py'''    
-    # Constrained 
+    
     def lower_tri_cov(self, log_var,corr):
-        std = torch.exp(0.5 * log_var)
+        std = log_var#torch.exp(0.5 * log_var)  # diagonal Constrain
         batch_size = std.shape[0]
         dim = std.shape[-1]
          

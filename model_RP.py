@@ -129,30 +129,29 @@ class VAE(nn.Module):
         return self.q_mean(unrolled), self.q_logvar(unrolled),self.q_logvar_corr(unrolled)
     
     
-    # # Unconstrained
-    def lower_tri_cov_un(self,log_var,corr):
+    # # # Unconstrained
+    # def lower_tri_cov_un(self,log_var,corr):
         
-        # std = log_var.mul(0.5).exp_()
-        batch_size = log_var.shape[0]
-        dim = log_var.shape[-1]
+    #     # std = log_var.mul(0.5).exp_()
+    #     batch_size = log_var.shape[0]
+    #     dim = log_var.shape[-1]
      
-        # build symmetric matrix with zeros on diagonal and correlations under 
-        rho_matrix = torch.zeros((batch_size, dim, dim), device=corr.device)
-        tril_indices = torch.tril_indices(row=dim, col=dim, offset=-1)
-        rho_matrix[:, tril_indices[0], tril_indices[1]] = corr 
-        # input(rho_matrix[0])
-        lower_tri_cov = rho_matrix
+    #     # build symmetric matrix with zeros on diagonal and correlations under 
+    #     rho_matrix = torch.zeros((batch_size, dim, dim), device=corr.device)
+    #     tril_indices = torch.tril_indices(row=dim, col=dim, offset=-1)
+    #     rho_matrix[:, tril_indices[0], tril_indices[1]] = corr 
+    #     # input(rho_matrix[0])
+    #     lower_tri_cov = rho_matrix
         
-        lower_tri_cov[:,range(dim), range(dim)] = log_var 
+    #     lower_tri_cov[:,range(dim), range(dim)] = log_var 
        
-        return lower_tri_cov
+    #     return lower_tri_cov
 
     
     
-    # # '''https://github.com/boschresearch/unscented-autoencoder/blob/main/models/dist_utils.py'''
-    # Constrained 
+    # # '''https://github.com/boschresearch/unscented-autoencoder/blob/main/models/dist_utils.py''' 
     def lower_tri_cov(self, log_var,corr):
-        std = torch.exp(0.5 * log_var)
+        std = log_var     #torch.exp(0.5 * log_var)  # diagonal Constrain
         batch_size = std.shape[0]
         dim = std.shape[-1]
          

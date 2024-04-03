@@ -44,20 +44,3 @@ def load_checkpoint(model, model_dir):
     model.load_state_dict(checkpoint['state'])
     epoch = checkpoint['epoch']
     return epoch
-
-
-def xavier_initialize(model):
-    modules = [
-        m for n, m in model.named_modules() if
-        'conv' in n or 'linear' in n
-    ]
-
-    parameters = [
-        p for
-        m in modules for
-        p in m.parameters() if
-        p.dim() >= 2
-    ]
-
-    for p in parameters:
-        init.xavier_normal(p)

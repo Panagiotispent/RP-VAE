@@ -68,7 +68,8 @@ class VAE(nn.Module):
         return (mean, logvar, None), x_reconstructed
     
     
-    def time_forward(self,x,Pr):
+    def time_forward(self,x):
+
         # encode x
         encoded = self.encoder(x)
         print('encoder()')

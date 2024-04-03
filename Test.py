@@ -116,6 +116,6 @@ def test_model(model, dataset, epochs=10,
     # )# label name's the first 8 samples
     
     
-    return total_loss.detach()
+    return total_loss.detach().to("cpu")
     
     
