@@ -21,10 +21,10 @@ parser = argparse.ArgumentParser('VAE PyTorch implementation')
 parser.add_argument('--dataset', default='Flowers102',
                     choices=list(TRAIN_DATASETS.keys()))
 
-parser.add_argument('--model', type=str, default='model_D') # model_Full model_D model_RP
+parser.add_argument('--model', type=str, default='model_RP_D') # model_Full model_D model_RP
 
 parser.add_argument('--kernel-num', type=int, default=500)
-parser.add_argument('--z-size', type=int, default= 10 )
+parser.add_argument('--z-size', type=int, default= 100 )
 parser.add_argument('--n-size', type=int, default= 10 )
 
 parser.add_argument('--epochs', type=int, default=30)
@@ -42,9 +42,9 @@ parser.add_argument('--no-gpus', action='store_false', dest='cuda')
 
 
 ## set default= True to train or test within spyder
-main_command = parser.add_mutually_exclusive_group(required=True)
+main_command = parser.add_mutually_exclusive_group(required=False)
 main_command.add_argument('--test', action='store_false', dest='train',default=False)   
-main_command.add_argument('--train', action='store_true',default =True)
+# main_command.add_argument('--train', action='store_true',default =True)
 
 
 if __name__ == '__main__':
@@ -59,7 +59,9 @@ if __name__ == '__main__':
         from model_D import VAE
     elif args.model == 'model_RP':
         from model_RP import VAE
-    
+    elif args.model == 'model_RP_D':
+        from model_RP_D import VAE
+        
     print(args.model)
     
     cuda = args.cuda and torch.cuda.is_available()
