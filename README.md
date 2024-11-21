@@ -53,4 +53,7 @@ Mutually_exclusive:
 
 Running main.py outputs runtimes and loss metrics, and generates graphs for image samples.
 
+Random Projection with block matrices not integrated, RP_B, RP_B_lamda
+
+
 The image samples are saved in the samples folder.
