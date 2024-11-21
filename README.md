@@ -2,6 +2,7 @@ Random Projection integrated with minor changes to the vanilla vae code: https:/
 
 The code for constraining the covariance matrices can be found in: https://github.com/boschresearch/unscented-autoencoder
 
+This project involved comparisons with a VAE utilising normalising FLows. Code for Normalising Flows used: https://github.com/fmu2/flow-VAE/blob/master/dynamic_flow_vae.py#L15 and BNAF: https://github.com/nicola-decao/BNAF/blob/master/bnaf.py
 The code can be run with visdom as well after uncommenting the required code.
 
 Instructions:
@@ -14,7 +15,7 @@ args:
 
 --dataset, default='Flowers102'
 
---model, default='model_D' # model_Full model_D model_RP
+--model, default='model_D' # model_Full model_D model_RP model_RP_D, model_Flow
 
 --kernel-num, default=500)
 
