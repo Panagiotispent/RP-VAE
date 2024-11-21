@@ -1,5 +1,5 @@
 
-# ''' Activate visdom server first. Go in a shell and write visdom'''
+# ''' -Not required- Activate visdom server first. Go in a shell and write visdom'''
 
 
 #!/usr/bin/env python3
@@ -18,14 +18,19 @@ from Test import test_model
 
 
 parser = argparse.ArgumentParser('VAE PyTorch implementation')
-parser.add_argument('--dataset', default='Flowers102',
+parser.add_argument('--dataset', default='mnist',
                     choices=list(TRAIN_DATASETS.keys()))
 
-parser.add_argument('--model', type=str, default='model_RP_D') # model_Full model_D model_RP
+parser.add_argument('--model', type=str, default='model_Flow') # model_Full model_D model_RP model_RP_D, model_Flow
+parser.add_argument('--flow-type', type=str, default='bnaf') # planar, radial, householder, bnaf
 
 parser.add_argument('--kernel-num', type=int, default=500)
-parser.add_argument('--z-size', type=int, default= 100 )
-parser.add_argument('--n-size', type=int, default= 10 )
+parser.add_argument('--z-size', type=int, default= 10 )
+parser.add_argument('--n-size', type=int, default= 20 ) # either RP lower full rank dimensions (eg z//10), or bnaf linear matrices dimensions (eg. n = 2z) 
+
+parser.add_argument('--f-len', type=int, default= 5 )  # 32 for flows, way less flow length (eg 4) for bnaf 
+parser.add_argument('--f-layers', type=int, default= 2 )
+parser.add_argument('--res', type=str, default='None') # None, normal, gated
 
 parser.add_argument('--epochs', type=int, default=30)
 parser.add_argument('--batch-size', type=int, default=100)
@@ -43,8 +48,8 @@ parser.add_argument('--no-gpus', action='store_false', dest='cuda')
 
 ## set default= True to train or test within spyder
 main_command = parser.add_mutually_exclusive_group(required=False)
-main_command.add_argument('--test', action='store_false', dest='train',default=False)   
-# main_command.add_argument('--train', action='store_true',default =True)
+# main_command.add_argument('--test', action='store_false', dest='train',default=False)   
+main_command.add_argument('--train', action='store_true',default =True)
 
 
 if __name__ == '__main__':
@@ -62,6 +67,9 @@ if __name__ == '__main__':
     elif args.model == 'model_RP_D':
         from model_RP_D import VAE
         
+    elif args.model == 'model_Flow':
+        from model_Flow import VAE
+        
     print(args.model)
     
     cuda = args.cuda and torch.cuda.is_available()
@@ -69,14 +77,29 @@ if __name__ == '__main__':
     train_set = TRAIN_DATASETS[args.dataset]
     test_set = TEST_DATASETS[args.dataset]
     
-    vae = VAE(
-        label=args.dataset,
-        image_size=dataset_config['size'],
-        channel_num=dataset_config['channels'],
-        kernel_num=args.kernel_num,
-        z_size=args.z_size,
-        n_size=args.n_size,
-    )
+    if 'Flow' in args.model:             
+        vae = VAE(
+           label=args.dataset + ' ' +args.flow_type ,
+           image_size=dataset_config['size'],
+           channel_num=dataset_config['channels'],
+           kernel_num=args.kernel_num,
+           z_size=args.z_size,
+           flow = args.flow_type,
+           length = args.f_len,
+           f_layers = args.f_layers,
+           n_size=args.n_size,
+           res = args.res
+       )
+    else:
+        vae = VAE(
+           label=args.dataset,
+           image_size=dataset_config['size'],
+           channel_num=dataset_config['channels'],
+           kernel_num=args.kernel_num,
+           z_size=args.z_size,
+           n_size=args.n_size,
+       )
+     
     
     # move the model parameters to the gpu if needed.
     if cuda:
@@ -130,3 +153,4 @@ if __name__ == '__main__':
         print(vae.name)  
         print('MC Mean test loss',mean)    
         print('MC Mean sd loss',sd)
+        

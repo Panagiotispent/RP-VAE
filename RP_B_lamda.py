@@ -137,7 +137,6 @@ class VAE(nn.Module):
         RP_tri= torch.zeros_like(torch.diag_embed(lamda)).to(tri.device) 
         
         
-        
         # torch.set_printoptions(threshold=10_000)
         # input(RP_tri[0])
         pos_end = p + tri.shape[1]

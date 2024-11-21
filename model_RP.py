@@ -60,9 +60,9 @@ class VAE(nn.Module):
         
         lower_tri_matrix = self.lower_tri_cov(var_ltr,logcorr)
       
-        projected_ltr,projected_var = self.RPproject(lower_tri_matrix,Pr)
+        projected_var = self.RPproject(lower_tri_matrix,Pr)
 
-        z = self.z_RP(mean,projected_ltr)
+        z,projected_var = self.z_RP(mean,projected_var)
         
         # for visualising the same batch 
         self.z = z.detach()
@@ -93,13 +93,13 @@ class VAE(nn.Module):
         print('lower_tri_cov()')
         print(min(timeit.repeat(lambda: self.lower_tri_cov(var_ltr,logcorr),globals=globals(),number= 100,repeat=10)))  
       
-        projected_ltr,projected_var = self.RPproject(lower_tri_matrix,Pr)
+        projected_var = self.RPproject(lower_tri_matrix,Pr)
         print('RPproject()')
         print(min(timeit.repeat(lambda: self.RPproject(lower_tri_matrix,Pr),globals=globals(),number= 100,repeat=10)))  
 
-        z = self.z_RP(mean,projected_ltr)
+        z = self.z_RP(mean,projected_var)
         print('z_RP()')
-        print(min(timeit.repeat(lambda: self.z_RP(mean,projected_ltr),globals=globals(),number= 100,repeat=10)))  
+        print(min(timeit.repeat(lambda: self.z_RP(mean,projected_var),globals=globals(),number= 100,repeat=10)))  
         
         # for visualising the same batch 
         self.z = z.detach()
@@ -151,7 +151,7 @@ class VAE(nn.Module):
     
     # # '''https://github.com/boschresearch/unscented-autoencoder/blob/main/models/dist_utils.py''' 
     def lower_tri_cov(self, log_var,corr):
-        std = log_var     #torch.exp(0.5 * log_var)  # diagonal Constrain
+        std = torch.exp(0.5 * log_var)  # diagonal Constrain
         batch_size = std.shape[0]
         dim = std.shape[-1]
          
@@ -166,24 +166,47 @@ class VAE(nn.Module):
          
         # build lower triangular covariance
         lower_tri_cov = var_matrix * rho_matrix  # multiply correlations and std's
-        lower_tri_cov = lower_tri_cov + torch.diag_embed(std)+ 1e-6  # add std's on diagonal
+        lower_tri_cov = lower_tri_cov + torch.diag_embed(std) # add std's on diagonal
         
         return lower_tri_cov
  
     
     def RPproject(self,tri,P):
         P = P.to(tri.device)
-        sigma = torch.bmm(tri,tri.transpose(2,1)) 
-        R = torch.bmm(P,sigma)
-        RP_var = torch.bmm(R,P.transpose(2,1)) 
+        sigma = torch.bmm(tri,tri.transpose(2,1)) # P @ tri [z,prj]
+        R = P.unsqueeze(0) @ sigma 
+        RP_var = R @ P.T.unsqueeze(0)
         
-        RP_tri = torch.bmm(P,tri)
+        RP_var = (RP_var + (1e-5 * torch.eye(RP_var.shape[-1]).unsqueeze(0).to(RP_var.device))).double() 
+        # RP_tri = torch.bmm(P,tri)
         
-        return  RP_tri,RP_var
+        return  RP_var
     
-    def z_RP(self,mean,ltr):
-        z = mean + ltr @ torch.randn(ltr.shape[-1]).cuda() # mean [bs,z]
-        return z
+    def close_psd(self,cov):
+        # Perform eigendecomposition
+        eigenvalues, eigenvectors = torch.linalg.eigh(cov)
+        
+        # Set negative eigenvalues to a small positive value
+        eigenvalues = torch.clamp(eigenvalues, min=1e-5)
+        
+        # Reconstruct the matrix
+        psd_matrix = eigenvectors @ torch.diag_embed(eigenvalues) @ eigenvectors.transpose(-2, -1)
+        
+        return psd_matrix
+
+    
+    def z_RP(self,mean,cov):
+        try:
+            z = mean + torch.bmm(torch.linalg.cholesky(cov).float(),torch.randn([cov.shape[0],cov.shape[-1],1]).cuda()).squeeze(-1) # mean [bs,z]
+        except:
+            cov = self.close_psd(cov)
+
+            print('z:',mean.shape)
+            print('cov:',cov.shape)
+            print('rand',torch.randn([cov.shape[0],cov.shape[-1],1]).shape)
+
+            z = mean + torch.bmm(torch.linalg.cholesky(cov).float(),torch.randn([cov.shape[0],cov.shape[-1],1]).cuda()).squeeze(-1) # mean [bs,z] 
+        return z , cov
     
     
     def reconstruction_loss(self, x_reconstructed, x):
@@ -195,9 +218,16 @@ class VAE(nn.Module):
         mean = mean[:,:,None]
         
         lvar = torch.bmm(tri,tri.transpose(2,1))
+        
+        # input(torch.min(torch.linalg.eigvalsh(lvar[0])))
+        # input((torch.linalg.eigvalsh(lvar[0])))
+        # input(torch.logdet(lvar))
+        # input(torch.min(torch.linalg.eigvalsh(var[0])))
+        # input((torch.linalg.eigvalsh(var[0])))
+        
         totrace = var + torch.bmm(mean, mean.transpose(2,1))
-
-        l = 0.5 * (- torch.logdet(lvar) - mean.shape[-1]+ totrace.diagonal(offset=0, dim1=-1, dim2=-2).sum(-1))
+        
+        l = 0.5 * (- torch.logdet(var) - mean.shape[-1]+ totrace.diagonal(offset=0, dim1=-1, dim2=-2).sum(-1))
        
         return torch.mean(l) 
     

@@ -7,7 +7,7 @@ import torchvision
 # import vis_utils
 import torch
 import timeit
-import time # for .backwards as it cannot be called in multiple successions 
+import time 
 # avg_meter = vis_utils.AverageMeter()
 # lnplt = vis_utils.VisdomLinePlotter()
 
@@ -58,14 +58,20 @@ def train_model(model, dataset, epochs=10,
         # Fixed sampling
         g = torch.Generator()
         
-        random_samples = torch.zeros([len(data_loader.dataset),model.z_size, model.cov_space]) # tri.shape >> z_size 
-        P = torch.zeros([len(data_loader.dataset),model.z_size, model.cov_space])
-        for i in range(len(data_loader.dataset)):
-            g.manual_seed(i)
-            random_samples[i] = torch.randn(model.z_size, model.cov_space, generator=g) # 
-            (P[i],_) = torch.linalg.qr(random_samples[i])
+        #Multiple random projection matrices with a fixed seed. (replicability)
+        # random_samples = torch.zeros([len(data_loader.dataset),model.z_size, model.cov_space]) # tri.shape >> z_size 
+        # P = torch.zeros([len(data_loader.dataset),model.z_size, model.cov_space])
+        # for i in range(len(data_loader.dataset)):
+        #     g.manual_seed(i)
+        #     random_samples[i] = torch.randn(model.z_size, model.cov_space, generator=g) # 
+        #     (P[i],_) = torch.linalg.qr(random_samples[i])
         
-        
+
+        g.manual_seed(0)
+        random_samples = torch.randn(model.z_size, model.cov_space, generator=g) # 
+        (P,_) = torch.linalg.qr(random_samples)
+
+
     for epoch in range(epoch_start, epochs+1):
         
         data_stream = tqdm(enumerate(data_loader, 1),disable=False)
@@ -83,56 +89,55 @@ def train_model(model, dataset, epochs=10,
             
             # flush gradients and run the model forward
             optimizer.zero_grad()
-            #For the projection matrix
-            batch_iter = batch_index * batch_size
+            
             
             if ('RP' in model.name) or ('RP_D' in model.name):
-                (mean, ltr, var), x_reconstructed = model(x,P[(batch_iter-batch_size):batch_iter])
+                (mean, ltr, var), x_reconstructed = model(x,P)
             
-                if epoch == 1 and batch_index == 1:
-                    with torch.no_grad():
-                        print('first batch time')
-                        print(min(timeit.repeat(lambda: model(x,P[(batch_iter-batch_size):batch_iter]),globals=globals(),number= 100,repeat=10)))
+                # if epoch == 1 and batch_index == 1:
+                #     with torch.no_grad():
+                #         print('first batch time')
+                #         print(min(timeit.repeat(lambda: model(x,P[(batch_iter-batch_size):batch_iter]),globals=globals(),number= 100,repeat=10)))
                         
-                        print('Each operation time:')
-                        model.time_forward(x,P[(batch_iter-batch_size):batch_iter])
+                #         print('Each operation time:')
+                #         model.time_forward(x,P[(batch_iter-batch_size):batch_iter])
                 
             else:
                 (mean, ltr, var), x_reconstructed = model(x)
                 
-                if epoch == 1 and batch_index == 1:
-                    with torch.no_grad():
-                        print('first batch time')
-                        print(min(timeit.repeat(lambda: model(x),globals=globals(),number= 100,repeat=10)))
+                # if epoch == 1 and batch_index == 1:
+                #     with torch.no_grad():
+                #         print('first batch time')
+                #         print(min(timeit.repeat(lambda: model(x),globals=globals(),number= 100,repeat=10)))
                         
-                        print('Each operation time:')
-                        model.time_forward(x)
+                #         print('Each operation time:')
+                #         model.time_forward(x)
                 
                 
             
             reconstruction_loss = model.reconstruction_loss(x_reconstructed, x)
             kl_divergence_loss = model.kl_divergence_loss(mean,ltr, var)
             
-            if epoch == 1 and batch_index == 1:
-                with torch.no_grad():
-                    print('recon_loss')
-                    print(min(timeit.repeat(lambda: model.reconstruction_loss(x_reconstructed, x),globals=globals(),number= 100,repeat=10)))
-                    print('kl_div')
-                    print(min(timeit.repeat(lambda: model.kl_divergence_loss(mean,ltr, var),globals=globals(),number= 100,repeat=10)))
+            # if epoch == 1 and batch_index == 1:
+            #     with torch.no_grad():
+            #         print('recon_loss')
+            #         print(min(timeit.repeat(lambda: model.reconstruction_loss(x_reconstructed, x),globals=globals(),number= 100,repeat=10)))
+            #         print('kl_div')
+            #         print(min(timeit.repeat(lambda: model.kl_divergence_loss(mean,ltr, var),globals=globals(),number= 100,repeat=10)))
                 
  
             total_loss = reconstruction_loss.cpu() + kl_divergence_loss.cpu()
             
-            # backprop gradients from the loss
-            if epoch == 1 and batch_index == 1:
-                print('backward pass')
-                tic = time.perf_counter()
-            
+            # # backprop gradients from the loss
+            # if epoch == 1 and batch_index == 1:
+            #     print('backward pass')
+            #     tic = time.perf_counter()
+
             total_loss.backward()
             optimizer.step()
-            if epoch == 1 and batch_index == 1:
-                toc = time.perf_counter()
-                print(f"{toc - tic} seconds")
+            # if epoch == 1 and batch_index == 1:
+            #     toc = time.perf_counter()
+            #     print(f"{toc - tic} seconds")
 
             # update progress
             data_stream.set_description((

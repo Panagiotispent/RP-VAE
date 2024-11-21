@@ -50,23 +50,26 @@ def test_model(model, dataset, epochs=10,
         # Fixed sampling
         g = torch.Generator()
         
-        random_samples = torch.zeros([len(data_loader.dataset),model.z_size, model.cov_space]) # tri.shape >> z_size 
-        P = torch.zeros([len(data_loader.dataset),model.z_size, model.cov_space])
-        for i in range(len(data_loader.dataset)):
-            g.manual_seed(i)
-            random_samples[i] = torch.randn(model.z_size, model.cov_space, generator=g) # 
-            (P[i],_) = torch.linalg.qr(random_samples[i])
-       
+        # random_samples = torch.zeros([len(data_loader.dataset),model.z_size, model.cov_space]) # tri.shape >> z_size 
+        # P = torch.zeros([len(data_loader.dataset),model.z_size, model.cov_space])
+        # for i in range(len(data_loader.dataset)):
+        #     g.manual_seed(i)
+        #     random_samples[i] = torch.randn(model.z_size, model.cov_space, generator=g) # 
+        #     (P[i],_) = torch.linalg.qr(random_samples[i])
+    
+    
+        g.manual_seed(0)
+        random_samples = torch.randn(model.z_size, model.cov_space, generator=g) # 
+        (P,_) = torch.linalg.qr(random_samples)
+    
     for batch_index, (x, y) in data_stream:
 
         # prepare data on gpu if needed
         x = Variable(x).cuda() if cuda else Variable(x)
         
-        #For the projection matrix
-        batch_iter = batch_index * batch_size
         
         if ('RP' in model.name) or ('RP_D' in model.name):
-            (mean, ltr, var), x_reconstructed = model(x,P[(batch_iter-batch_size):batch_iter])
+            (mean, ltr, var), x_reconstructed = model(x,P)
         else:
             (mean, ltr, var), x_reconstructed = model(x)
         

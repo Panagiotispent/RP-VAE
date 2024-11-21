@@ -40,6 +40,10 @@ class VAE(nn.Module):
         self.q_logvar_corr = self._linear(self.feature_volume, (self.corr_size), relu=False)
         self.lamda = self._linear(self.feature_volume, self.z_size, relu=False)
         
+        
+        self.p = nn.Parameter(torch.tensor([0.1],dtype=torch.double))
+        
+        
         # projection
         self.project = self._linear(z_size, self.feature_volume, relu=False)
 
@@ -55,7 +59,8 @@ class VAE(nn.Module):
         # encode x
         encoded = self.encoder(x)
         
-        mean, var_ltr, logcorr, lamda = self.q_full_cov(encoded) 
+        mean, var_ltr, logcorr,lamda = self.q_full_cov(encoded) 
+        
         
         lower_tri_matrix = self.lower_tri_cov(var_ltr,logcorr) # logvar_ltr, corr
         
@@ -84,7 +89,7 @@ class VAE(nn.Module):
         print('encoder()')
         print(min(timeit.repeat(lambda: self.encoder(x),globals=globals(),number= 100,repeat=10)))
         
-        mean, var_ltr, logcorr, lamda = self.q_full_cov(encoded)
+        mean, var_ltr, logcorr, lamda= self.q_full_cov(encoded)
         print('q_full_cov()')
         print(min(timeit.repeat(lambda: self.q_full_cov(encoded),globals=globals(),number= 100,repeat=10)))        
         
@@ -140,7 +145,7 @@ class VAE(nn.Module):
         lower_tri_cov = rho_matrix
         
         lower_tri_cov[:,range(dim), range(dim)] = log_var 
-       
+        
         return lower_tri_cov
     
     # # '''https://github.com/boschresearch/unscented-autoencoder/blob/main/models/dist_utils.py'''
@@ -161,26 +166,63 @@ class VAE(nn.Module):
          
         # build lower triangular covariance
         lower_tri_cov = var_matrix * rho_matrix  # multiply correlations and std's
-        lower_tri_cov = lower_tri_cov + torch.diag_embed(std)+ 1e-6  # add std's on diagonal
+        lower_tri_cov = lower_tri_cov + torch.diag_embed(std) # add std's on diagonal
         
+        # cov = torch.bmm(lower_tri_cov,lower_tri_cov.transpose(2,1))
+        
+        
+        # # Print mean and standard deviation of eigenvalues for debugging
+        # eigvals = torch.linalg.eigvalsh(cov[0]) # Use eigvalsh for symmetric matrices
+        # print(torch.mean(eigvals))
+        # input(torch.std(eigvals))
         return lower_tri_cov
     
     def RPproject(self,tri,lamda,P):
-        P = P.to(tri.device)
-        sigma = torch.bmm(tri,tri.transpose(2,1)) 
-        R = torch.bmm(P,sigma) # P @ tri [z,prj]
-        RP = torch.bmm(R,P.transpose(2,1)) 
+        P = P.to(tri.device).double()
+        sigma = torch.bmm(tri,tri.transpose(2,1)).double() # P @ tri [z,prj]
+        R = P.unsqueeze(0) @ sigma
+        RP = R @ P.T.unsqueeze(0)
         
-        log_lamda = lamda.exp() # contrain to positive the diagonal to be added to the projected covariance
+        e_lamda = torch.exp(lamda).double() # contrain to positive the diagonal to be added to the projected covariance
+        m_lamda = torch.diag_embed(e_lamda, offset=0, dim1=1)
         
-        m_lamda = torch.diag_embed(log_lamda, offset=0, dim1=1)
+        # sigma = torch.bmm(tri,tri.transpose(2,1))
         
-        RP_var = RP + m_lamda
-
+        RP_var = RP + m_lamda #(2e-5 * torch.eye(RP.shape[-1]).unsqueeze(0).to(RP.device))).double() #+ m_lamda
+        
+        # input((1e-4 * m_lamda)[0])
+        
+        # input((torch.linalg.eigvalsh(sigma[0])))
+        # input((torch.linalg.eigvalsh(RP[0])))
+        # input((torch.linalg.eigvalsh(RP_var[0])))
+        
+        # input(torch.logdet(sigma[0]))
+        # input(torch.det(RP[0]))
+        # input(torch.logdet(RP[0]))
+        # input(torch.det(RP_var[0]))
+        # input(torch.logdet(RP_var[0]))
+        # input(torch.logdet(sigma[0]))
+        # if torch.det(RP_var).any() == 0:
+        #     RP_var = RP_var + m_lamda
+        #     print('here')
+        
+        # if torch.det(RP_var).any() == 0:
+        #     RP_var = RP_var + (1e-02 * torch.eye(RP_var.shape[-1]).unsqueeze(0).to(RP_var.device)) #+ m_lamda
+        #     print('here e2')
+        # if torch.det(RP_var).any() == 0:
+        #     RP_var = RP_var + (1 * torch.eye(RP_var.shape[-1]).unsqueeze(0).to(RP_var.device)) #+ m_lamda
+        #     print('here 1')
+        
+        # while torch.det(RP_var[0]) != torch.det(sigma[0]) :
+        #     RP_var = RP_var +(1e-6 * torch.eye(RP_var.shape[-1]).unsqueeze(0).to(RP_var.device))
+        #     print(torch.det(RP_var[0]))
+        
+        
+       
         return RP_var
     
     def z_RP(self,mean,var):
-        z = mean + torch.tril(var,diagonal=0) @ torch.randn(var.shape[-1]).cuda() # mean [bs,z]
+        z = mean + torch.bmm(torch.linalg.cholesky(var).float(),torch.randn([var.shape[0],var.shape[-1],1]).cuda()).squeeze(-1) # mean [bs,z]
         return z
     
     def reconstruction_loss(self, x_reconstructed, x):
@@ -189,13 +231,27 @@ class VAE(nn.Module):
     # # Random Projection kl_divergence
     def kl_divergence_loss(self, mean, tri,var): 
 
-        # lvar = torch.bmm(tri,tri.transpose(2,1))
-        input(tri.shape)
-        input(var.shape)
+        lvar = torch.bmm(tri,tri.transpose(2,1))
+        
+        # input(torch.min(torch.linalg.eigvalsh(lvar[0])))
+        # input((torch.linalg.eigvalsh(lvar[0])))
+        # input(torch.det(lvar[0]))
+        # input(torch.log(torch.det(lvar[0])))
+        # input(torch.logdet(lvar[0]))
+        # # input(torch.min(torch.linalg.eigvalsh(var[0])))
+        # # input((torch.linalg.eigvalsh(var[0])))
+        # input((var[0]))
+        
+        # print(torch.linalg.eigvalsh(var[0]))
+        # input(torch.det(var[0]))
+        
+        # input(torch.log(torch.det(var[0])))
         mean = mean[:,:,None]
 
         totrace = var + torch.bmm(mean, mean.transpose(2,1))
         
+        
+    
         l = 0.5 * (- torch.logdet(var) - mean.shape[-1]+ totrace.diagonal(offset=0, dim1=-1, dim2=-2).sum(-1))
 
         #batch mean l
