@@ -1,4 +1,7 @@
 # Random Projection Integration with Vanilla VAE
+
+**Note:** The included scripts serve as a basic implementation of the models and methodologies developed in my PhD research. Refer to the relevant thesis {TO BE PUBLISHED} for theoretical insights, comparisons, and detailed analyses.
+
 This repository extends a [vanilla VAE implementation](https://github.com/kuc2477/pytorch-vae) by integrating Random Projection (RP) with minor modifications. The project maintains compatibility with the original codebase's requirements and execution procedures.
 
 Additional Features
