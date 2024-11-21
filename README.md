@@ -1,59 +1,48 @@
-Random Projection integrated with minor changes to the vanilla vae code: https://github.com/kuc2477/pytorch-vae. This code uses the vanilla VAE code as base so the same requirements and execution procedure hold for this code.
+# Random Projection Integration with Vanilla VAE
+This repository extends a [vanilla VAE implementation](https://github.com/kuc2477/pytorch-vae) by integrating Random Projection (RP) with minor modifications. The project maintains compatibility with the original codebase's requirements and execution procedures.
 
-The code for constraining the covariance matrices can be found in: https://github.com/boschresearch/unscented-autoencoder
+Additional Features
+Constrained Covariance Matrices: Implementation details can be found in the [Unscented Autoencoder repository](https://github.com/boschresearch/unscented-autoencoder).
+Normalizing Flows Comparison: Code references include:
+[Dynamic Flow VAE](https://github.com/fmu2/flow-VAE/blob/master/dynamic_flow_vae.py)
+[BNAF](https://github.com/nicola-decao/BNAF/blob/master/bnaf.py)
 
-This project involved comparisons with a VAE utilising normalising FLows. Code for Normalising Flows used: https://github.com/fmu2/flow-VAE/blob/master/dynamic_flow_vae.py#L15 and BNAF: https://github.com/nicola-decao/BNAF/blob/master/bnaf.py
-The code can be run with visdom as well after uncommenting the required code.
+# **Arguments**
+| Argument                | Default Value         | Description                                         |
+|-------------------------|-----------------------|-----------------------------------------------------|
+| `--dataset`             | `'Flowers102'`       | Dataset to use.                                     |
+| `--model`               | `'model_D'`          | Model type: `model_Full`, `model_D`, `model_RP`, `model_RP_D`, `model_Flow`. |
+| `--kernel-num`          | `500`                | Kernel count for Random Projection.                |
+| `--z-size`              | `10`                 | Latent dimension size.                              |
+| `--n-size`              | `10`                 | Noise dimension size.                               |
+| `--epochs`              | `30`                 | Number of training epochs.                          |
+| `--batch-size`          | `100`                | Batch size for training.                            |
+| `--sample-size`         | `20`                 | Sample size for image generation.                   |
+| `--lr`                  | `3e-05`              | Learning rate.                                      |
+| `--weight-decay`        | `1e-06`              | Weight decay for regularization.                    |
+| `--loss-log-interval`   | `100`                | Interval for logging loss metrics.                 |
+| `--image-log-interval`  | `500`                | Interval for saving image samples.                 |
+| `--resume`              | `False`              | Resume training from a checkpoint.                  |
+| `--checkpoint-dir`      | `'./checkpoints'`    | Directory to save checkpoints.                      |
+| `--sample-dir`          | `'./samples'`        | Directory to save generated samples.                |
+| `--no-gpus`             | `False`              | Disable GPU usage.                                  |
 
-Instructions:
+### Mutually Exclusive Flags
 
-Run a visdom local host in a shell / not required if not used.
+| Argument   | Default Value | Description       |
+|------------|---------------|-------------------|
+| `--test`   | `False`       | Run testing.      |
+| `--train`  | `True`        | Run training.     |
 
-Execute main.py
 
-args: 
-
---dataset, default='Flowers102'
-
---model, default='model_D' # model_Full model_D model_RP model_RP_D, model_Flow
-
---kernel-num, default=500)
-
---z-size, default= 10
-
---n-size, default= 10
-
---epochs, default=30
-
---batch-size, default=100
-
---sample-size, default=20
-
---lr, default=3e-05
-
---weight-decay, default=1e-06
-
---loss-log-interval, default=100
-
---image-log-interval, default=500
-
---resume,default = False
-
---checkpoint-dir, default='./checkpoints'
-
---sample-dir,default='./samples'
-
---no-gpus, dest='cuda'
-
-Mutually_exclusive:
-
---test,default=False
-
---train,default =True
-
-Running main.py outputs runtimes and loss metrics, and generates graphs for image samples.
-
-Random Projection with block matrices not integrated, RP_B, RP_B_lamda
-
+# **Mutually Exclusive Flags**:
+--test (default: False): Run testing.
+--train (default: True): Run training.
+# **Outputs**
+Runtime Metrics: Training runtime and loss metrics.
+Graphs and Samples: Generated image samples saved in the samples folder.
+# **Notes**
+Variants such as Random Projection with block matrices (RP_B, RP_B_lamda) are not integrated.
+Uncomment specific sections in the code to enable Visdom visualization.
 
 The image samples are saved in the samples folder.
